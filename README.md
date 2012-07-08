@@ -51,8 +51,8 @@ REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
  *	It is under development. If you're lucky, it might work.
  *	Currently only BeagleBone is supported
  *	It is not properly tested.
- *	IT MAY FRY YOUR BOARD
- *	IF YOU CHANGE IT, OR LOOK AT IT THE WRONG WAY, IT MAY FRY YOUR BOARD
+ *	**IT MAY FRY YOUR BOARD**
+ *	**IF YOU CHANGE IT, OR LOOK AT IT THE WRONG WAY, IT MAY FRY YOUR BOARD**
  *	I DON'T WANT PEOPLE GETTING ANGRY WITH ME IF THIS CODE FRIES THEIR BOARD.
  	I GET TO DEAL WITH ENOUGH SHIT EVERY DAY, I DON'T NEED MORE.
  *	IT MAY FRY YOUR BOARD
@@ -85,7 +85,7 @@ the hardware-specific names, however.
 
 ### Installation
 
-__I'll do this when it is in a more stable state.__
+_I'll do this when it is in a more stable state._
 
 ## Driver Specific
 
