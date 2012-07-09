@@ -54,8 +54,6 @@ REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
  *	**IT MAY FRY YOUR BOARD**
  *	**IF YOU CHANGE IT, OR LOOK AT IT THE WRONG WAY, IT MAY FRY YOUR BOARD**
  *	I DON'T WANT PEOPLE GETTING ANGRY WITH ME IF THIS CODE FRIES THEIR BOARD.
- 	I GET TO DEAL WITH ENOUGH SHIT EVERY DAY, I DON'T NEED MORE.
- *	IT MAY FRY YOUR BOARD
  *	If you don't want to risk frying your board, you can still run the
  	unit tests ;-)
 
@@ -91,3 +89,19 @@ _I'll do this when it is in a more stable state._
 
 ### BeagleBone
 
+#### Pin map
+
+## Things to be done
+
+ *	PWM output support (BeagleBone)
+ *	Analog input (BeagleBone)
+ *	Interupts (lib and BeagleBone)
+ *	Serial support for UART pins (lib and BeagleBone)
+ *	SPI support; consider augmenting ShiftIn and ShiftOut to use hardware pins
+ 	if appropriate
+ *	bit functions if they are not already in the go run time
+ *	LCD, particularly HD44780 (lib)
+ *	Servo (lib)
+ *	Stepper (lib)
+ *	I2C (lib)
+ *	TLC5940 (lib)
