@@ -226,47 +226,90 @@ func init() {
 	// which they occur in this slice. i.e. Pin 0 will be gpmc_a5, pin 1 will be
 	// gpmc_a5 and so on.
 	// @todo Review the actual pins on the BeagleBone and see if there are others.
+	// @todo Review for correctness against specs. Notable mistake is USR0 and USR1 having the same pin mask
 	p := []*BeaglePin{
-		&BeaglePin{"",	"USR0",		GPIO1,		1<<22,	"gpmc_a5"},
-		&BeaglePin{"",	"USR1",		GPIO1,		1<<22,	"gpmc_a6"},
-		&BeaglePin{"",	"USR2",		GPIO1,		1<<23,	"gpmc_a7"},
-		&BeaglePin{"",	"USR3",		GPIO1,		1<<24,	"gpmc_a8"},
-		&BeaglePin{"P9.42",	"GPIO0_7",	GPIO0,		1<<7,	"ecap0_in_pwm0_out"},
-		&BeaglePin{"P8.14",	"GPIO0_26",	GPIO0,		1<<26,	"gpmc_ad10"},
-		&BeaglePin{"P8.17",	"GPIO0_27",	GPIO0,		1<<27,	"gpmc_ad11"},
-		&BeaglePin{"P8.25",	"GPIO1_0",	GPIO1,		1,		"gpmc_ad0"},
-		&BeaglePin{"P8.24",	"GPIO1_1",	GPIO1,		1<<1,	"gpmc_ad1"},
-		&BeaglePin{"P8.5",	"GPIO1_2",	GPIO1,		1<<2,	"gpmc_ad2"},
-		&BeaglePin{"P8.6",	"GPIO1_3",	GPIO1,		1<<3,	"gpmc_ad3"},
-		&BeaglePin{"P8.23",	"GPIO1_4",	GPIO1,		1<<4,	"gpmc_ad4"},
-		&BeaglePin{"P8.22",	"GPIO1_5",	GPIO1,		1<<5,	"gpmc_ad5"},
-		&BeaglePin{"P8.3",	"GPIO1_6",	GPIO1,		1<<6,	"gpmc_ad6"},
-		&BeaglePin{"P8.4",	"GPIO1_7",	GPIO1,		1<<7,	"gpmc_ad7"},
-		&BeaglePin{"P8.12",	"GPIO1_12",	GPIO1,		1<<12,	"gpmc_ad12"},
-		&BeaglePin{"P8.11",	"GPIO1_13",	GPIO1,		1<<13,	"gpmc_ad13"},
-		&BeaglePin{"P8.16",	"GPIO1_14",	GPIO1,		1<<14,	"gpmc_ad14"},
-		&BeaglePin{"P8.15",	"GPIO1_15",	GPIO1,		1<<15,	"gpmc_ad15"},
-		&BeaglePin{"P9.15",	"GPIO1_16",	GPIO1,		1<<16,	"gpmc_a0"},
-		&BeaglePin{"P9.23",	"GPIO1_17",	GPIO1,		1<<17,	"gpmc_a1"},
-		&BeaglePin{"P9.12",	"GPIO1_28",	GPIO1,		1<<28,	"gpmc_ben1"},
-		&BeaglePin{"P8.26",	"GPIO1_29",	GPIO1,		1<<29,	"gpmc_csn0"},
-		&BeaglePin{"P8.21",	"GPIO1_30",	GPIO1,		1<<30,	"gpmc_csn1"},
-		&BeaglePin{"P8.20",	"GPIO1_31",	GPIO1,		1<<31,	"gpmc_csn2"},
-		&BeaglePin{"P8.18",	"GPIO2_1",	GPIO2,		1,		"gpmc_clk"},
-		&BeaglePin{"P8.45",	"GPIO2_6",	GPIO2,		1<<6,	"lcd_data0"},
-		&BeaglePin{"P8.46",	"GPIO2_7",	GPIO2,		1<<7,	"lcd_data1"},
-		&BeaglePin{"P8.43",	"GPIO2_8",	GPIO2,		1<<8,	"lcd_data2"},
-		&BeaglePin{"P8.44",	"GPIO2_9",	GPIO2,		1<<9,	"lcd_data3"},
-		&BeaglePin{"P8.41",	"GPIO2_10",	GPIO2,		1<<10,	"lcd_data4"},
-		&BeaglePin{"P8.42",	"GPIO2_11",	GPIO2,		1<<11,	"lcd_data5"},
-		&BeaglePin{"P8.39",	"GPIO2_12",	GPIO2,		1<<12,	"lcd_data6"},
-		&BeaglePin{"P8.40",	"GPIO2_13",	GPIO2,		1<<13,	"lcd_data7"},
-		&BeaglePin{"P8.27",	"GPIO2_22",	GPIO2,		1<<22,	"lcd_vsync"},
-		&BeaglePin{"P8.29",	"GPIO2_23",	GPIO2,		1<<23,	"lcd_hsync"},
-		&BeaglePin{"P8.28",	"GPIO2_24",	GPIO2,		1<<24,	"lcd_pclk"},
-		&BeaglePin{"P8.30",	"GPIO2_25",	GPIO2,		1<<25,	"lcd_ac_bias_en"},
-		&BeaglePin{"P9.27",	"GPIO3_19",	GPIO3,		1<<19,	"mcasp0_fsr"},
-		&BeaglePin{"P9.25",	"GPIO3_21",	GPIO3,		1<<21,	"mcasp0_ahclkx"},
+		// P8
+		&BeaglePin{"P8.3", "GPIO1_6", GPIO1, 1 << 6, "gpmc_ad6"},
+		&BeaglePin{"P8.4", "GPIO1_7", GPIO1, 1 << 7, "gpmc_ad7"},
+		&BeaglePin{"P8.5", "GPIO1_2", GPIO1, 1 << 2, "gpmc_ad2"},
+		&BeaglePin{"P8.6", "GPIO1_3", GPIO1, 1 << 3, "gpmc_ad3"},
+		&BeaglePin{"P8.7", "GPIO2_2", GPIO2, 1 << 2, "gpmc_advn_ale"}, // @todo: check muxer supports
+		&BeaglePin{"P8.8", "GPIO2_3", GPIO2, 1 << 3, "gpmc_oen_ren"},  // @todo: check muxer supports
+		&BeaglePin{"P8.9", "GPIO2_5", GPIO2, 1 << 5, "gpmc_be0n_cle"}, // @todo: check muxer supports
+		&BeaglePin{"P8.10", "GPIO2_4", GPIO2, 1 << 4, "gpmc_wen"},     // @todo: check muxer supports
+		&BeaglePin{"P8.11", "GPIO1_13", GPIO1, 1 << 13, "gpmc_ad13"},
+		&BeaglePin{"P8.12", "GPIO1_12", GPIO1, 1 << 12, "gpmc_ad12"},
+		&BeaglePin{"P8.14", "GPIO0_26", GPIO0, 1 << 26, "gpmc_ad10"},
+		&BeaglePin{"P8.15", "GPIO1_15", GPIO1, 1 << 15, "gpmc_ad15"},
+		&BeaglePin{"P8.16", "GPIO1_14", GPIO1, 1 << 14, "gpmc_ad14"},
+		&BeaglePin{"P8.17", "GPIO0_27", GPIO0, 1 << 27, "gpmc_ad11"},
+		&BeaglePin{"P8.18", "GPIO2_1", GPIO2, 1 << 1, "gpmc_clk"},   // todo: check that the muxer ident is not gpmc_clk_mux0
+		&BeaglePin{"P8.19", "GPIO0_22", GPIO0, 1 << 22, "gpmc_ad8"}, // todo: check muxer supports
+		&BeaglePin{"P8.20", "GPIO1_31", GPIO1, 1 << 31, "gpmc_csn2"},
+		&BeaglePin{"P8.21", "GPIO1_30", GPIO1, 1 << 30, "gpmc_csn1"},
+		&BeaglePin{"P8.22", "GPIO1_5", GPIO1, 1 << 5, "gpmc_ad5"},
+		&BeaglePin{"P8.23", "GPIO1_4", GPIO1, 1 << 4, "gpmc_ad4"},
+		&BeaglePin{"P8.24", "GPIO1_1", GPIO1, 1 << 1, "gpmc_ad1"},
+		&BeaglePin{"P8.25", "GPIO1_0", GPIO1, 1, "gpmc_ad0"},
+		&BeaglePin{"P8.26", "GPIO1_29", GPIO1, 1 << 29, "gpmc_csn0"},
+		&BeaglePin{"P8.27", "GPIO2_22", GPIO2, 1 << 22, "lcd_vsync"},
+		&BeaglePin{"P8.28", "GPIO2_24", GPIO2, 1 << 24, "lcd_pclk"},
+		&BeaglePin{"P8.29", "GPIO2_23", GPIO2, 1 << 23, "lcd_hsync"},
+		&BeaglePin{"P8.30", "GPIO2_25", GPIO2, 1 << 25, "lcd_ac_bias_en"},
+		&BeaglePin{"P8.31", "GPIO0_10", GPIO0, 1 << 10, "lcd_data14"}, // todo: check muxer supports
+		&BeaglePin{"P8.32", "GPIO0_11", GPIO0, 1 << 11, "lcd_data15"}, // todo: check muxer supports
+		&BeaglePin{"P8.33", "GPIO0_9", GPIO0, 1 << 9, "lcd_data13"},   // todo: check muxer supports
+		&BeaglePin{"P8.34", "GPIO2_17", GPIO2, 1 << 17, "lcd_data11"}, // todo: check muxer supports
+		&BeaglePin{"P8.35", "GPIO0_8", GPIO0, 1 << 8, "lcd_data12"},   // todo: check muxer supports
+		&BeaglePin{"P8.36", "GPIO2_16", GPIO2, 1 << 16, "lcd_data10"}, // todo: check muxer supports
+		&BeaglePin{"P8.37", "GPIO2_14", GPIO2, 1 << 14, "lcd_data8"},  // todo: check muxer supports
+		&BeaglePin{"P8.38", "GPIO2_15", GPIO2, 1 << 15, "lcd_data9"},  // todo: check muxer supports
+		&BeaglePin{"P8.39", "GPIO2_12", GPIO2, 1 << 12, "lcd_data6"},
+		&BeaglePin{"P8.40", "GPIO2_13", GPIO2, 1 << 13, "lcd_data7"},
+		&BeaglePin{"P8.41", "GPIO2_10", GPIO2, 1 << 10, "lcd_data4"},
+		&BeaglePin{"P8.42", "GPIO2_11", GPIO2, 1 << 11, "lcd_data5"},
+		&BeaglePin{"P8.43", "GPIO2_8", GPIO2, 1 << 8, "lcd_data2"},
+		&BeaglePin{"P8.44", "GPIO2_9", GPIO2, 1 << 9, "lcd_data3"},
+		&BeaglePin{"P8.45", "GPIO2_6", GPIO2, 1 << 6, "lcd_data0"},
+		&BeaglePin{"P8.46", "GPIO2_7", GPIO2, 1 << 7, "lcd_data1"},
+
+		// P9
+		&BeaglePin{"P9.11", "GPIO0_30", GPIO0, 1 << 30, "gpmc_wait0"}, // todo: check muxer supports
+		&BeaglePin{"P9.12", "GPIO1_28", GPIO1, 1 << 28, "gpmc_be1n"},  // todo: check muxer supports, check not ben1
+		&BeaglePin{"P9.13", "GPIO0_31", GPIO0, 1 << 31, "gpmc_wpn"},   // todo: check muxer supports
+		&BeaglePin{"P9.14", "GPIO1_18", GPIO1, 1 << 18, "gpmc_a2"},    // todo: check muxer supports
+		&BeaglePin{"P9.15", "GPIO1_16", GPIO1, 1 << 16, "gpmc_a0"},
+		&BeaglePin{"P9.16", "GPIO1_19", GPIO1, 1 << 19, "gpmc_a3"},    // todo: check muxer supports
+		&BeaglePin{"P9.17", "GPIO0_5", GPIO0, 1 << 5, "spi0_cs0"},     // todo: check muxer supports
+		&BeaglePin{"P9.18", "GPIO0_4", GPIO0, 1 << 4, "spi0_d1"},      // todo: check muxer supports
+		&BeaglePin{"P9.19", "GPIO0_13", GPIO0, 1 << 13, "uart1_rtsn"}, // todo: check muxer supports
+		&BeaglePin{"P9.20", "GPIO0_12", GPIO0, 1 << 12, "uart1_ctsn"}, // todo: check muxer supports
+		&BeaglePin{"P9.21", "GPIO0_3", GPIO0, 1 << 3, "spi0_d0"},      // todo: check muxer supports
+		&BeaglePin{"P9.22", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},    // todo: check muxer supports
+		&BeaglePin{"P9.23", "GPIO1_17", GPIO1, 1 << 17, "gpmc_a1"},
+		&BeaglePin{"P9.24", "GPIO0_15", GPIO0, 1 << 15, "uart1_txd"}, // todo: check muxer supports
+		&BeaglePin{"P9.25", "GPIO3_21", GPIO3, 1 << 21, "mcasp0_ahclkx"},
+		&BeaglePin{"P9.26", "GPIO0_14", GPIO0, 1 << 14, "uart1_rxd"}, // todo: check muxer supports
+		&BeaglePin{"P9.27", "GPIO3_19", GPIO3, 1 << 19, "mcasp0_fsr"},
+		&BeaglePin{"P9.28", "GPIO3_17", GPIO3, 1 << 17, "mcasp0_ahclkr"}, // todo: check muxer supports
+		&BeaglePin{"P9.29", "GPIO3_15", GPIO3, 1 << 15, "mcasp0_fsx"},    // todo: check muxer supports
+		&BeaglePin{"P9.30", "GPIO3_16", GPIO3, 1 << 16, "mcasp0_axr0"},   // todo: check muxer supports
+		&BeaglePin{"P9.31", "GPIO3_14", GPIO3, 1 << 14, "mcasp0_aclkx"},  // todo: check muxer supports
+		//		&BeaglePin{"P9.33", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN4
+		//		&BeaglePin{"P9.35", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN6
+		//		&BeaglePin{"P9.36", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN5
+		//		&BeaglePin{"P9.37", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN2
+		//		&BeaglePin{"P9.38", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN3
+		//		&BeaglePin{"P9.39", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN0
+		//		&BeaglePin{"P9.40", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN1
+		&BeaglePin{"P9.41", "GPIO0_20", GPIO0, 1 << 20, "xdma_event_intr1"}, // todo: check muxer supports
+		&BeaglePin{"P9.42", "GPIO0_7", GPIO0, 1 << 7, "ecap0_in_pwm0_out"},
+
+		// USR LEDs
+		&BeaglePin{"USR0", "USR0", GPIO1, 1 << 21, "gpmc_a5"},
+		&BeaglePin{"USR1", "USR1", GPIO1, 1 << 22, "gpmc_a6"},
+		&BeaglePin{"USR2", "USR2", GPIO1, 1 << 23, "gpmc_a7"},
+		&BeaglePin{"USR3", "USR3", GPIO1, 1 << 24, "gpmc_a8"},
 	}
 	beaglePins = p
 }
