@@ -9,15 +9,18 @@ package hwio
 // TI chip that powers it. It may work on other Beagle boards but this is
 // completely untested.
 //
+// Things known to work (tested on hardware):
+// - digital output on all GPIO pins that are exposed on P8 and P9 of the board, and USR0 to USR3
+//
 // WARNINGS:
-// - THIS IS STILL UNDER DEVELOPMENT. IT MIGHT WORK IF YOU'RE LUCKY
-// - THIS CODE MAY FRY YOUR BOARD
+// - THIS IS STILL UNDER DEVELOPMENT
+// - UNTESTED FEATURES MAY FRY YOUR BOARD
 // - ANY CHANGES YOU MAKE TO THIS MAY FRY YOUR BOARD
 // Don't say you weren't warned.
 
-// @todo: Digital pin debugging
+// @todo: Digital input testing
 // @todo: Use set and clear register locations instead for digital write, instead of bit manipulation
-// @todo: Analog pin supported
+// @todo: Analog pin support
 // @todo: Timers
 // @todo: Interupts
 // @todo: PWM support
@@ -233,18 +236,19 @@ func init() {
 		&BeaglePin{"P8.4", "GPIO1_7", GPIO1, 1 << 7, "gpmc_ad7"},
 		&BeaglePin{"P8.5", "GPIO1_2", GPIO1, 1 << 2, "gpmc_ad2"},
 		&BeaglePin{"P8.6", "GPIO1_3", GPIO1, 1 << 3, "gpmc_ad3"},
-		&BeaglePin{"P8.7", "GPIO2_2", GPIO2, 1 << 2, "gpmc_advn_ale"}, // @todo: check muxer supports
-		&BeaglePin{"P8.8", "GPIO2_3", GPIO2, 1 << 3, "gpmc_oen_ren"},  // @todo: check muxer supports
-		&BeaglePin{"P8.9", "GPIO2_5", GPIO2, 1 << 5, "gpmc_be0n_cle"}, // @todo: check muxer supports
-		&BeaglePin{"P8.10", "GPIO2_4", GPIO2, 1 << 4, "gpmc_wen"},     // @todo: check muxer supports
+		&BeaglePin{"P8.7", "GPIO2_2", GPIO2, 1 << 2, "gpmc_advn_ale"},
+		&BeaglePin{"P8.8", "GPIO2_3", GPIO2, 1 << 3, "gpmc_oen_ren"},
+		&BeaglePin{"P8.9", "GPIO2_5", GPIO2, 1 << 5, "gpmc_ben0_cle"},
+		&BeaglePin{"P8.10", "GPIO2_4", GPIO2, 1 << 4, "gpmc_wen"},
 		&BeaglePin{"P8.11", "GPIO1_13", GPIO1, 1 << 13, "gpmc_ad13"},
 		&BeaglePin{"P8.12", "GPIO1_12", GPIO1, 1 << 12, "gpmc_ad12"},
+		&BeaglePin{"P8.13", "GPIO0_23", GPIO0, 1 << 23, "gpmc_ad9"},
 		&BeaglePin{"P8.14", "GPIO0_26", GPIO0, 1 << 26, "gpmc_ad10"},
 		&BeaglePin{"P8.15", "GPIO1_15", GPIO1, 1 << 15, "gpmc_ad15"},
 		&BeaglePin{"P8.16", "GPIO1_14", GPIO1, 1 << 14, "gpmc_ad14"},
 		&BeaglePin{"P8.17", "GPIO0_27", GPIO0, 1 << 27, "gpmc_ad11"},
-		&BeaglePin{"P8.18", "GPIO2_1", GPIO2, 1 << 1, "gpmc_clk"},   // todo: check that the muxer ident is not gpmc_clk_mux0
-		&BeaglePin{"P8.19", "GPIO0_22", GPIO0, 1 << 22, "gpmc_ad8"}, // todo: check muxer supports
+		&BeaglePin{"P8.18", "GPIO2_1", GPIO2, 1 << 1, "gpmc_clk"},
+		&BeaglePin{"P8.19", "GPIO0_22", GPIO0, 1 << 22, "gpmc_ad8"},
 		&BeaglePin{"P8.20", "GPIO1_31", GPIO1, 1 << 31, "gpmc_csn2"},
 		&BeaglePin{"P8.21", "GPIO1_30", GPIO1, 1 << 30, "gpmc_csn1"},
 		&BeaglePin{"P8.22", "GPIO1_5", GPIO1, 1 << 5, "gpmc_ad5"},
@@ -256,14 +260,14 @@ func init() {
 		&BeaglePin{"P8.28", "GPIO2_24", GPIO2, 1 << 24, "lcd_pclk"},
 		&BeaglePin{"P8.29", "GPIO2_23", GPIO2, 1 << 23, "lcd_hsync"},
 		&BeaglePin{"P8.30", "GPIO2_25", GPIO2, 1 << 25, "lcd_ac_bias_en"},
-		&BeaglePin{"P8.31", "GPIO0_10", GPIO0, 1 << 10, "lcd_data14"}, // todo: check muxer supports
-		&BeaglePin{"P8.32", "GPIO0_11", GPIO0, 1 << 11, "lcd_data15"}, // todo: check muxer supports
-		&BeaglePin{"P8.33", "GPIO0_9", GPIO0, 1 << 9, "lcd_data13"},   // todo: check muxer supports
-		&BeaglePin{"P8.34", "GPIO2_17", GPIO2, 1 << 17, "lcd_data11"}, // todo: check muxer supports
-		&BeaglePin{"P8.35", "GPIO0_8", GPIO0, 1 << 8, "lcd_data12"},   // todo: check muxer supports
-		&BeaglePin{"P8.36", "GPIO2_16", GPIO2, 1 << 16, "lcd_data10"}, // todo: check muxer supports
-		&BeaglePin{"P8.37", "GPIO2_14", GPIO2, 1 << 14, "lcd_data8"},  // todo: check muxer supports
-		&BeaglePin{"P8.38", "GPIO2_15", GPIO2, 1 << 15, "lcd_data9"},  // todo: check muxer supports
+		&BeaglePin{"P8.31", "GPIO0_10", GPIO0, 1 << 10, "lcd_data14"},
+		&BeaglePin{"P8.32", "GPIO0_11", GPIO0, 1 << 11, "lcd_data15"},
+		&BeaglePin{"P8.33", "GPIO0_9", GPIO0, 1 << 9, "lcd_data13"},
+		&BeaglePin{"P8.34", "GPIO2_17", GPIO2, 1 << 17, "lcd_data11"},
+		&BeaglePin{"P8.35", "GPIO0_8", GPIO0, 1 << 8, "lcd_data12"},
+		&BeaglePin{"P8.36", "GPIO2_16", GPIO2, 1 << 16, "lcd_data10"},
+		&BeaglePin{"P8.37", "GPIO2_14", GPIO2, 1 << 14, "lcd_data8"},
+		&BeaglePin{"P8.38", "GPIO2_15", GPIO2, 1 << 15, "lcd_data9"},
 		&BeaglePin{"P8.39", "GPIO2_12", GPIO2, 1 << 12, "lcd_data6"},
 		&BeaglePin{"P8.40", "GPIO2_13", GPIO2, 1 << 13, "lcd_data7"},
 		&BeaglePin{"P8.41", "GPIO2_10", GPIO2, 1 << 10, "lcd_data4"},
@@ -274,27 +278,27 @@ func init() {
 		&BeaglePin{"P8.46", "GPIO2_7", GPIO2, 1 << 7, "lcd_data1"},
 
 		// P9
-		&BeaglePin{"P9.11", "GPIO0_30", GPIO0, 1 << 30, "gpmc_wait0"}, // todo: check muxer supports
-		&BeaglePin{"P9.12", "GPIO1_28", GPIO1, 1 << 28, "gpmc_be1n"},  // todo: check muxer supports, check not ben1
-		&BeaglePin{"P9.13", "GPIO0_31", GPIO0, 1 << 31, "gpmc_wpn"},   // todo: check muxer supports
-		&BeaglePin{"P9.14", "GPIO1_18", GPIO1, 1 << 18, "gpmc_a2"},    // todo: check muxer supports
+		&BeaglePin{"P9.11", "GPIO0_30", GPIO0, 1 << 30, "gpmc_wait0"},
+		&BeaglePin{"P9.12", "GPIO1_28", GPIO1, 1 << 28, "gpmc_ben1"},
+		&BeaglePin{"P9.13", "GPIO0_31", GPIO0, 1 << 31, "gpmc_wpn"},
+		&BeaglePin{"P9.14", "GPIO1_18", GPIO1, 1 << 18, "gpmc_a2"},
 		&BeaglePin{"P9.15", "GPIO1_16", GPIO1, 1 << 16, "gpmc_a0"},
-		&BeaglePin{"P9.16", "GPIO1_19", GPIO1, 1 << 19, "gpmc_a3"},    // todo: check muxer supports
-		&BeaglePin{"P9.17", "GPIO0_5", GPIO0, 1 << 5, "spi0_cs0"},     // todo: check muxer supports
-		&BeaglePin{"P9.18", "GPIO0_4", GPIO0, 1 << 4, "spi0_d1"},      // todo: check muxer supports
-		&BeaglePin{"P9.19", "GPIO0_13", GPIO0, 1 << 13, "uart1_rtsn"}, // todo: check muxer supports
-		&BeaglePin{"P9.20", "GPIO0_12", GPIO0, 1 << 12, "uart1_ctsn"}, // todo: check muxer supports
-		&BeaglePin{"P9.21", "GPIO0_3", GPIO0, 1 << 3, "spi0_d0"},      // todo: check muxer supports
-		&BeaglePin{"P9.22", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},    // todo: check muxer supports
+		&BeaglePin{"P9.16", "GPIO1_19", GPIO1, 1 << 19, "gpmc_a3"},
+		&BeaglePin{"P9.17", "GPIO0_5", GPIO0, 1 << 5, "spi0_cs0"},
+		&BeaglePin{"P9.18", "GPIO0_4", GPIO0, 1 << 4, "spi0_d1"},
+		&BeaglePin{"P9.19", "GPIO0_13", GPIO0, 1 << 13, "uart1_rtsn"},
+		&BeaglePin{"P9.20", "GPIO0_12", GPIO0, 1 << 12, "uart1_ctsn"},
+		&BeaglePin{"P9.21", "GPIO0_3", GPIO0, 1 << 3, "spi0_d0"},
+		&BeaglePin{"P9.22", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},
 		&BeaglePin{"P9.23", "GPIO1_17", GPIO1, 1 << 17, "gpmc_a1"},
-		&BeaglePin{"P9.24", "GPIO0_15", GPIO0, 1 << 15, "uart1_txd"}, // todo: check muxer supports
+		&BeaglePin{"P9.24", "GPIO0_15", GPIO0, 1 << 15, "uart1_txd"},
 		&BeaglePin{"P9.25", "GPIO3_21", GPIO3, 1 << 21, "mcasp0_ahclkx"},
-		&BeaglePin{"P9.26", "GPIO0_14", GPIO0, 1 << 14, "uart1_rxd"}, // todo: check muxer supports
+		&BeaglePin{"P9.26", "GPIO0_14", GPIO0, 1 << 14, "uart1_rxd"},
 		&BeaglePin{"P9.27", "GPIO3_19", GPIO3, 1 << 19, "mcasp0_fsr"},
-		&BeaglePin{"P9.28", "GPIO3_17", GPIO3, 1 << 17, "mcasp0_ahclkr"}, // todo: check muxer supports
-		&BeaglePin{"P9.29", "GPIO3_15", GPIO3, 1 << 15, "mcasp0_fsx"},    // todo: check muxer supports
-		&BeaglePin{"P9.30", "GPIO3_16", GPIO3, 1 << 16, "mcasp0_axr0"},   // todo: check muxer supports
-		&BeaglePin{"P9.31", "GPIO3_14", GPIO3, 1 << 14, "mcasp0_aclkx"},  // todo: check muxer supports
+		&BeaglePin{"P9.28", "GPIO3_17", GPIO3, 1 << 17, "mcasp0_ahclkr"},
+		&BeaglePin{"P9.29", "GPIO3_15", GPIO3, 1 << 15, "mcasp0_fsx"},
+		&BeaglePin{"P9.30", "GPIO3_16", GPIO3, 1 << 16, "mcasp0_axr0"},
+		&BeaglePin{"P9.31", "GPIO3_14", GPIO3, 1 << 14, "mcasp0_aclkx"},
 		//		&BeaglePin{"P9.33", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN4
 		//		&BeaglePin{"P9.35", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN6
 		//		&BeaglePin{"P9.36", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN5
@@ -313,59 +317,6 @@ func init() {
 	}
 	beaglePins = p
 }
-
-//foo = {}
-/*
-var boo int {
-}
-*/
-/*
-			"P8.7":		"gpmc_advn_ale",
-			"P8.8":		"gpmc_oen_ren",
-			"P8.9":		"gpmc_ben0_cle",
-			"P8.10":	"gpmc_wen",
-			"P8.13":	"gpmc_ad9",
-			"P8.19":	"gpmc_ad8",
-			"P8.31":	"lcd_data14",
-			"P8.32":	"lcd_data15",
-			"P8.33":	"lcd_data13",
-			"P8.34":	"lcd_data11",
-			"P8.35":	"lcd_data12",
-			"P8.36":	"lcd_data10",
-			"P8.37":	"lcd_data8",
-			"P8.38":	"lcd_data9",
-			"P9.11":	"gpmc_wait0",
-			"P9.13":	"gpmc_wpn",
-			"P9.14":	"gpmc_a2",
-			"P9.16":	"gpmc_a3",
-			"P9.17":	"spi0_cs0",
-			"P9.18":	"spi0_d1",
-			"P9.19":	"uart1_rtsn",
-			"P9.20":	"uart1_ctsn",
-			"P9.21":	"spi0_d0",
-			"P9.22":	"spi0_sclk",
-			"P9.24":	"uart1_txd",
-			"P9.26":	"uart1_rxd",
-			"P9.28":	"mcasp0_ahclkr",
-			"P9.29":	"mcasp0_fsx",
-			"P9.30":	"mcasp0_axr0",
-			"P9.31":	"mcasp0_ahclkx",
-			"P9.41":	"xdma_event_intr0",
-			"":	"ecap0_in_pwm0_out"}
-
-analogPinDef = {
-			"P9.33":	"ain4",
-			"P9.35":	"ain6",
-			"P9.36":	"ain5",
-			"P9.37":	"ain2",
-			"P9.38":	"ain3",
-			"P9.39":	"ain0",
-			"P9.40":	"ain1"}
-
-
-GPIO = {
-}
-*/
 
 type BeagleBoneDriver struct {
 	// Mapped memory for directly accessing hardware registers
@@ -440,13 +391,6 @@ func (d *BeagleBoneDriver) pinMux(mux string, mode uint) error {
 	//       f.write(hex(mode)[2:]) # Write hex string (stripping off '0x')
 }
 
-// def _pinMux(fn, mode):
-//   try:
-//     with open(PINMUX_PATH+fn, 'wb') as f:
-//       f.write(hex(mode)[2:]) # Write hex string (stripping off '0x')
-//   except IOError:
-//     print "*omap_mux file not found: '%s'" % (PINMUX_PATH+fn)
-
 func (d *BeagleBoneDriver) DigitalWrite(pin Pin, value int) (e error) {
 	p := beaglePins[pin]
 	if value == 0 {
@@ -454,13 +398,6 @@ func (d *BeagleBoneDriver) DigitalWrite(pin Pin, value int) (e error) {
 	} else {
 		d.orReg(p.port+GPIO_DATAOUT, p.bit, 32)
 	}
-	return nil
-	// """ Writes given digital pin low if state=0, high otherwise. """
-	// assert (gpio_pin in GPIO), "*Invalid GPIO pin: '%s'" % gpio_pin
-	// if (state):
-	//   _orReg(GPIO[gpio_pin][0]+GPIO_DATAOUT, GPIO[gpio_pin][1])
-	//   return
-	// _clearReg(GPIO[gpio_pin][0]+GPIO_DATAOUT, GPIO[gpio_pin][1])
 	return nil
 }
 
