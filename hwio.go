@@ -6,8 +6,8 @@ package hwio
 
 import (
 	"errors"
-	"time"
 	"fmt"
+	"time"
 )
 
 type BitShiftOrder byte
@@ -22,19 +22,19 @@ var driver HardwareDriver
 
 // Retrieved from the driver, this is the map of the hardware pins supported by
 // the driver and their capabilities
-var definedPins HardwarePinMap 
+var definedPins HardwarePinMap
 
 // A private type for associating a pin's definition with the current IO mode
 // and any other dynamic properties of the pin.
 type assignedPin struct {
-	pinDef *PinDef		// definition of pin
-	pinIOMode PinIOMode	// mode that was assigned to this pin
+	pinDef    *PinDef   // definition of pin
+	pinIOMode PinIOMode // mode that was assigned to this pin
 }
 
 // A map of pin numbers to the assigned dynamic properties of the pin. This is
 // set by PinMode when errorChecking is on, and can be used by other functions
 // to determine if the request is valid given the assigned properties of the pin.
-var assignedPins map[Pin] *assignedPin
+var assignedPins map[Pin]*assignedPin
 
 // If set to true, functions should test that their constraints are met.
 // e.g. test that the pin is capable of doing what is asked. This can be set
@@ -70,7 +70,7 @@ func SetDriver(d HardwareDriver) {
 	driver = d
 	driver.Init()
 	definedPins = driver.PinMap()
-	assignedPins = make(map[Pin] *assignedPin)
+	assignedPins = make(map[Pin]*assignedPin)
 }
 
 // Retrieve the current hardware driver.
@@ -218,7 +218,7 @@ func Delay(duration int) {
 // time package
 func DelayMicroseconds(duration int) {
 	time.Sleep(time.Duration(duration) * time.Microsecond)
-}	
+}
 
 func DebugPinMap() {
 	fmt.Println("HardwarePinMap:")
@@ -299,12 +299,27 @@ func ShiftOutSize(dataPin Pin, clockPin Pin, value uint, order BitShiftOrder, n 
 
 // This is the interface that hardware drivers implement.
 type HardwareDriver interface {
+	// Initialise the driver after creation
 	Init() (e error)
+
+	// Set mode of a pin
 	PinMode(pin Pin, mode PinIOMode) (e error)
+
+	// Write digital output
 	DigitalWrite(pin Pin, value int) error
+
+	// Read digital input
 	DigitalRead(Pin) (int, error)
+
+	// PWM write
 	AnalogWrite(pin Pin, value int) error
+
+	// Analog input. Resolution is device dependent.
 	AnalogRead(pin Pin) (int, error)
+
+	// Return the pin map for the driver, listing all supported pins and their capabilities
 	PinMap() (pinMap HardwarePinMap)
+
+	// Close the driver before destruction
 	Close()
 }

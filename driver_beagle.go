@@ -5,7 +5,7 @@ package hwio
 // The hardware control logic has been ported to Go, using a memory mapped file
 // to get at the control registers direct.
 //
-// This driver is very specific to BeagleBone (Ive built to revision A5) and the
+// This driver is very specific to BeagleBone (I've built to revision A5) and the
 // TI chip that powers it. It may work on other Beagle boards but this is
 // completely untested.
 //
@@ -15,68 +15,76 @@ package hwio
 // - ANY CHANGES YOU MAKE TO THIS MAY FRY YOUR BOARD
 // Don't say you weren't warned.
 
+// @todo: Digital pin debugging
+// @todo: Use set and clear register locations instead for digital write, instead of bit manipulation
+// @todo: Analog pin supported
+// @todo: Timers
+// @todo: Interupts
+// @todo: PWM support
+
 import (
 	"os"
-	"syscall"
 	"strconv"
+	"syscall"
 )
 
 // Represents info we need to know about a pin on the BeagleBone.
 // @todo Determine if 'hwPin' is required
 type BeaglePin struct {
-	hwPin string		// This intended for the P8.16 format name (currently unused)
-	gpioName string		// This is used for a human readable name
-	port uint			// The GPIO port
-	bit uint			// A single bit in the position of the I/O value on the port
-	mode0Name string	// mode 0 signal name, used by the muxer
+	hwPin     string // This intended for the P8.16 format name (currently unused)
+	gpioName  string // This is used for a human readable name
+	port      uint   // The GPIO port
+	bit       uint   // A single bit in the position of the I/O value on the port
+	mode0Name string // mode 0 signal name, used by the muxer
 }
 
 const (
-	MMAP_OFFSET = 0x44c00000 
-	MMAP_SIZE   = 0x48ffffff-MMAP_OFFSET
+	MMAP_OFFSET = 0x44c00000
+	MMAP_SIZE   = 0x48ffffff - MMAP_OFFSET
 
-	GPIO0 = 0x44e07000-MMAP_OFFSET
-	GPIO1 = 0x4804c000-MMAP_OFFSET
-	GPIO2 = 0x481ac000-MMAP_OFFSET
-	GPIO3 = 0x481ae000-MMAP_OFFSET
+	GPIO0 = 0x44e07000 - MMAP_OFFSET
+	GPIO1 = 0x4804c000 - MMAP_OFFSET
+	GPIO2 = 0x481ac000 - MMAP_OFFSET
+	GPIO3 = 0x481ae000 - MMAP_OFFSET
 
-//	CM_PER = 0x44e00000-MMAP_OFFSET
-//	CM_WKUP = 0x44e00400-MMAP_OFFSET
+	//	CM_PER = 0x44e00000-MMAP_OFFSET
+	//	CM_WKUP = 0x44e00400-MMAP_OFFSET
 
-//	CM_PER_EPWMSS0_CLKCTRL = 0xd4+CM_PER
-//	CM_PER_EPWMSS1_CLKCTRL = 0xcc+CM_PER
-//	CM_PER_EPWMSS2_CLKCTRL = 0xd8+CM_PER
+	//	CM_PER_EPWMSS0_CLKCTRL = 0xd4+CM_PER
+	//	CM_PER_EPWMSS1_CLKCTRL = 0xcc+CM_PER
+	//	CM_PER_EPWMSS2_CLKCTRL = 0xd8+CM_PER
 
-//	CM_WKUP_ADC_TSC_CLKCTRL = 0xbc+CM_WKUP
+	//	CM_WKUP_ADC_TSC_CLKCTRL = 0xbc+CM_WKUP
 
-//	MODULEMODE_ENABLE = 0x02
-//	IDLEST_MASK = 0x03<<16
+	//	MODULEMODE_ENABLE = 0x02
+	//	IDLEST_MASK = 0x03<<16
 
-// //# To enable module clock:
-// //#  _setReg(CM_WKUP_module_CLKCTRL, MODULEMODE_ENABLE)
-// //#  while (_getReg(CM_WKUP_module_CLKCTRL) & IDLEST_MASK): pass
-// //# To disable module clock:
-// //#  _andReg(CM_WKUP_module_CLKCTRL, ~MODULEMODE_ENABLE)
-// //#-----------------------------
+	// //# To enable module clock:
+	// //#  _setReg(CM_WKUP_module_CLKCTRL, MODULEMODE_ENABLE)
+	// //#  while (_getReg(CM_WKUP_module_CLKCTRL) & IDLEST_MASK): pass
+	// //# To disable module clock:
+	// //#  _andReg(CM_WKUP_module_CLKCTRL, ~MODULEMODE_ENABLE)
+	// //#-----------------------------
 	PINMUX_PATH = "/sys/kernel/debug/omap_mux/"
 
-	CONF_SLEW_SLOW    = 1<<6
-	CONF_RX_ACTIVE    = 1<<5
-	CONF_PULLUP       = 1<<4
+	CONF_SLEW_SLOW    = 1 << 6
+	CONF_RX_ACTIVE    = 1 << 5
+	CONF_PULLUP       = 1 << 4
 	CONF_PULLDOWN     = 0x00
-	CONF_PULL_DISABLE = 1<<3
+	CONF_PULL_DISABLE = 1 << 3
 
-	CONF_GPIO_MODE    = 0x07 
+	CONF_GPIO_MODE   = 0x07
 	CONF_GPIO_OUTPUT = CONF_GPIO_MODE
-	CONF_GPIO_INPUT  = CONF_GPIO_MODE+CONF_RX_ACTIVE
-// CONF_ADC_PIN     = CONF_RX_ACTIVE+CONF_PULL_DISABLE
+	CONF_GPIO_INPUT  = CONF_GPIO_MODE + CONF_RX_ACTIVE
+	// CONF_ADC_PIN     = CONF_RX_ACTIVE+CONF_PULL_DISABLE
 
-// CONF_UART_TX     = CONF_PULLUP
-// CONF_UART_RX     = CONF_RX_ACTIVE
+	// CONF_UART_TX     = CONF_PULLUP
+	// CONF_UART_RX     = CONF_RX_ACTIVE
 
-	GPIO_OE           = 0x134
-	GPIO_DATAIN       = 0x138
-	GPIO_DATAOUT      = 0x13c
+	GPIO_OE      = 0x134
+	GPIO_DATAIN  = 0x138
+	GPIO_DATAOUT = 0x13c
+
 // GPIO_CLEARDATAOUT = 0x190
 // GPIO_SETDATAOUT   = 0x194
 
@@ -91,7 +99,6 @@ const (
 
 // ADC_SOFTRESET = 0x01
 
-
 // #--- ADC_CTRL ---
 // ADC_CTRL = ADC_TSC+0x40
 
@@ -100,7 +107,7 @@ const (
 // #  _setReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
 // # To set write protect on:
 // #  _clearReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
- 
+
 // TSC_ADC_SS_ENABLE = 0x01 
 // # To enable:
 // # _setReg(ADC_CTRL, TSC_ADC_SS_ENABLE)
@@ -137,7 +144,6 @@ const (
 // ADCSTEPCONFIG8 = ADC_TSC+0x9c
 // ADCSTEPDELAY8  = ADC_TSC+0xa0
 // # Only need the first 8 steps - 1 for each AIN pin
-
 
 // ADC_RESET = 0x00 # Default value of STEPCONFIG
 
@@ -325,11 +331,11 @@ type BeagleBoneDriver struct {
 
 func (d *BeagleBoneDriver) Init() error {
 	// Set up the memory mapped file giving us access to hardware registers
-	file, e := os.OpenFile("/dev/mem", os.O_RDWR | os.O_APPEND, 0)
+	file, e := os.OpenFile("/dev/mem", os.O_RDWR|os.O_APPEND, 0)
 	if e != nil {
 		return e
 	}
-	mmap, e := syscall.Mmap(int(file.Fd()), MMAP_OFFSET, MMAP_SIZE, syscall.PROT_READ | syscall.PROT_WRITE, syscall.MAP_SHARED)
+	mmap, e := syscall.Mmap(int(file.Fd()), MMAP_OFFSET, MMAP_SIZE, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if e != nil {
 		return e
 	}
@@ -338,37 +344,38 @@ func (d *BeagleBoneDriver) Init() error {
 	d.analogInit()
 
 	return nil
-//	with open(MEM_FILE, "r+b") as f:
-//  __mmap = mmap(f.fileno(), MMAP_SIZE, offset=MMAP_OFFSET)
+	//	with open(MEM_FILE, "r+b") as f:
+	//  __mmap = mmap(f.fileno(), MMAP_SIZE, offset=MMAP_OFFSET)
 }
 
 func (d *BeagleBoneDriver) Close() {
 	syscall.Munmap(d.mmap)
 }
 
-func (d *BeagleBoneDriver) PinMode(pin Pin, mode PinIOMode) (error) {
+func (d *BeagleBoneDriver) PinMode(pin Pin, mode PinIOMode) error {
 	p := beaglePins[pin]
 	if mode == OUTPUT {
-		e := d.pinMux(p.mode0Name, CONF_GPIO_OUTPUT)		// _pinMux(GPIO[gpio_pin][2], CONF_GPIO_OUTPUT)
+		e := d.pinMux(p.mode0Name, CONF_GPIO_OUTPUT) // _pinMux(GPIO[gpio_pin][2], CONF_GPIO_OUTPUT)
 		if e != nil {
 			return e
 		}
 
-		d.clearReg(p.port + uint(GPIO_OE), p.bit, 32)		// _clearReg(GPIO[gpio_pin][0]+GPIO_OE, GPIO[gpio_pin][1])
+		d.clearReg(p.port+uint(GPIO_OE), p.bit, 32) // _clearReg(GPIO[gpio_pin][0]+GPIO_OE, GPIO[gpio_pin][1])
 	} else {
 		pull := CONF_PULL_DISABLE
+		// note: pull up/down modes assume that CONF_PULLDOWN resets the pull disable bit
 		if mode == INPUT_PULLUP {
 			pull = CONF_PULLUP
-		} else {
+		} else if mode == INPUT_PULLDOWN {
 			pull = CONF_PULLDOWN
 		}
 
-		e := d.pinMux(p.mode0Name, CONF_GPIO_INPUT | uint(pull))	// _pinMux(GPIO[gpio_pin][2], CONF_GPIO_INPUT | pull)
+		e := d.pinMux(p.mode0Name, CONF_GPIO_INPUT|uint(pull)) // _pinMux(GPIO[gpio_pin][2], CONF_GPIO_INPUT | pull)
 		if e != nil {
 			return e
 		}
 
-		d.orReg(p.port + uint(GPIO_OE), p.bit, 32)			// _orReg(GPIO[gpio_pin][0]+GPIO_OE, GPIO[gpio_pin][1])
+		d.orReg(p.port+uint(GPIO_OE), p.bit, 32) // _orReg(GPIO[gpio_pin][0]+GPIO_OE, GPIO[gpio_pin][1])
 	}
 	return nil
 }
@@ -379,15 +386,15 @@ func (d *BeagleBoneDriver) pinMux(mux string, mode uint) error {
 	// user-level process because it lacks the proper privileges, but it's 
 	// easy enough to just use the built-in file-based system and let the 
 	// kernel do the work. 
-	f, e := os.OpenFile(PINMUX_PATH + mux, os.O_WRONLY | os.O_TRUNC, 0666)
+	f, e := os.OpenFile(PINMUX_PATH+mux, os.O_WRONLY|os.O_TRUNC, 0666)
 	if e != nil {
 		return e
 	}
 	s := strconv.Itoa(int(mode))
 	f.WriteString(s)
 	return nil
-//     with open(PINMUX_PATH+fn, 'wb') as f:
-//       f.write(hex(mode)[2:]) # Write hex string (stripping off '0x')
+	//     with open(PINMUX_PATH+fn, 'wb') as f:
+	//       f.write(hex(mode)[2:]) # Write hex string (stripping off '0x')
 }
 
 // def _pinMux(fn, mode):
@@ -400,32 +407,32 @@ func (d *BeagleBoneDriver) pinMux(mux string, mode uint) error {
 func (d *BeagleBoneDriver) DigitalWrite(pin Pin, value int) (e error) {
 	p := beaglePins[pin]
 	if value == 0 {
-		d.clearReg(p.port + GPIO_DATAOUT, p.bit, 32)
+		d.clearReg(p.port+GPIO_DATAOUT, p.bit, 32)
 	} else {
-		d.orReg(p.port + GPIO_DATAOUT, p.bit, 32)
+		d.orReg(p.port+GPIO_DATAOUT, p.bit, 32)
 	}
 	return nil
-  // """ Writes given digital pin low if state=0, high otherwise. """
-  // assert (gpio_pin in GPIO), "*Invalid GPIO pin: '%s'" % gpio_pin
-  // if (state):
-  //   _orReg(GPIO[gpio_pin][0]+GPIO_DATAOUT, GPIO[gpio_pin][1])
-  //   return
-  // _clearReg(GPIO[gpio_pin][0]+GPIO_DATAOUT, GPIO[gpio_pin][1])
+	// """ Writes given digital pin low if state=0, high otherwise. """
+	// assert (gpio_pin in GPIO), "*Invalid GPIO pin: '%s'" % gpio_pin
+	// if (state):
+	//   _orReg(GPIO[gpio_pin][0]+GPIO_DATAOUT, GPIO[gpio_pin][1])
+	//   return
+	// _clearReg(GPIO[gpio_pin][0]+GPIO_DATAOUT, GPIO[gpio_pin][1])
 	return nil
 }
 
 func (d *BeagleBoneDriver) DigitalRead(pin Pin) (value int, e error) {
 	p := beaglePins[pin]
-	reg := d.getReg(p.port + GPIO_DATAIN, 32)
+	reg := d.getReg(p.port+GPIO_DATAIN, 32)
 	if (reg & p.bit) != 0 {
 		return HIGH, nil
 	}
 	return LOW, nil
-  // """ Returns pin state as 1 or 0. """
-  // assert (gpio_pin in GPIO), "*Invalid GPIO pin: '%s'" % gpio_pin
-  // if (_getReg(GPIO[gpio_pin][0]+GPIO_DATAIN) & GPIO[gpio_pin][1]):
-  //   return 1
-  // return 0
+	// """ Returns pin state as 1 or 0. """
+	// assert (gpio_pin in GPIO), "*Invalid GPIO pin: '%s'" % gpio_pin
+	// if (_getReg(GPIO[gpio_pin][0]+GPIO_DATAIN) & GPIO[gpio_pin][1]):
+	//   return 1
+	// return 0
 }
 
 func (d *BeagleBoneDriver) AnalogWrite(pin Pin, value int) (e error) {
@@ -433,20 +440,20 @@ func (d *BeagleBoneDriver) AnalogWrite(pin Pin, value int) (e error) {
 }
 
 func (d *BeagleBoneDriver) AnalogRead(pin Pin) (value int, e error) {
-  // """ Returns analog value read on given analog input pin. """
-  // assert (analog_pin in ADC), "*Invalid analog pin: '%s'" % analog_pin
+	// """ Returns analog value read on given analog input pin. """
+	// assert (analog_pin in ADC), "*Invalid analog pin: '%s'" % analog_pin
 
-  // if (_getReg(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK):
-  //   # The ADC module clock has been shut off, e.g. by a different 
-  //   # PyBBIO script stopping while this one was running, turn back on:
-  //   _analog_init() 
+	// if (_getReg(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK):
+	//   # The ADC module clock has been shut off, e.g. by a different 
+	//   # PyBBIO script stopping while this one was running, turn back on:
+	//   _analog_init() 
 
-  // # Enable sequncer step that's set for given input:
-  // _setReg(ADC_STEPENABLE, ADC_ENABLE(analog_pin))
-  // # Sequencer starts automatically after enabling step, wait for complete:
-  // while(_getReg(ADC_STEPENABLE) & ADC_ENABLE(analog_pin)): pass
-  // # Return 12-bit value from the ADC FIFO register:
-  // return _getReg(ADC_FIFO0DATA) & ADC_FIFO_MASK
+	// # Enable sequncer step that's set for given input:
+	// _setReg(ADC_STEPENABLE, ADC_ENABLE(analog_pin))
+	// # Sequencer starts automatically after enabling step, wait for complete:
+	// while(_getReg(ADC_STEPENABLE) & ADC_ENABLE(analog_pin)): pass
+	// # Return 12-bit value from the ADC FIFO register:
+	// return _getReg(ADC_FIFO0DATA) & ADC_FIFO_MASK
 	return 0, nil
 }
 
@@ -455,17 +462,14 @@ func (d *BeagleBoneDriver) AnalogRead(pin Pin) (value int, e error) {
 //       to the given number of bits and reference voltage. """
 //   return adc_value*(vRef/2**bits)
 
-
-
-
 // Sets 16 or 32 bit Register at address to its current value AND mask.
 func (d *BeagleBoneDriver) andReg(address uint, mask uint, length uint /* 32 */) {
-	d.setReg(address, d.getReg(address, length) & mask, length)
+	d.setReg(address, d.getReg(address, length)&mask, length)
 }
 
 // Sets 16 or 32 bit Register at address to its current value OR mask.
 func (d *BeagleBoneDriver) orReg(address uint, mask uint, length uint /* 32 */) {
-	d.setReg(address, d.getReg(address, length) | mask, length)
+	d.setReg(address, d.getReg(address, length)|mask, length)
 }
 
 // Clears mask bits in 16 or 32 bit register at given address.
@@ -479,18 +483,18 @@ func (d *BeagleBoneDriver) clearReg(address uint, mask uint, length uint /* 32 *
 func (d *BeagleBoneDriver) getReg(address uint, length uint) uint {
 	if length == 32 {
 		return uint(d.mmap[address] |
-					d.mmap[address+1] << 8 |
-					d.mmap[address+2] << 16 |
-					d.mmap[address+3] << 24)
+			d.mmap[address+1]<<8 |
+			d.mmap[address+2]<<16 |
+			d.mmap[address+3]<<24)
 	} else if length == 16 {
 		return uint(d.mmap[address] |
-					d.mmap[address+1] << 8)
+			d.mmap[address+1]<<8)
 	}
 	return 0
-//   if (length == 32):
-//     return struct.unpack("<L", __mmap[address:address+4])[0]
-//   elif (length == 16):
-//     return struct.unpack("<H", __mmap[address:address+2])[0]
+	//   if (length == 32):
+	//     return struct.unpack("<L", __mmap[address:address+4])[0]
+	//   elif (length == 16):
+	//     return struct.unpack("<H", __mmap[address:address+2])[0]
 }
 
 func (d *BeagleBoneDriver) setReg(address uint, value uint, length uint) {
@@ -502,40 +506,36 @@ func (d *BeagleBoneDriver) setReg(address uint, value uint, length uint) {
 	} else if length == 16 {
 
 	}
-// def _setReg(address, new_value, length=32):
-//   """ Sets 16 or 32 bits at given address to given value. """
-//   if (length == 32):
-//     __mmap[address:address+4] = struct.pack("<L", new_value)
-//   elif (length == 16):
-//     __mmap[address:address+2] = struct.pack("<H", new_value)
+	// def _setReg(address, new_value, length=32):
+	//   """ Sets 16 or 32 bits at given address to given value. """
+	//   if (length == 32):
+	//     __mmap[address:address+4] = struct.pack("<L", new_value)
+	//   elif (length == 16):
+	//     __mmap[address:address+2] = struct.pack("<H", new_value)
 }
 
 func (d *BeagleBoneDriver) PinMap() (pinMap HardwarePinMap) {
-	general := []Capability {CAP_INPUT,CAP_OUTPUT}
-//	analog := []Capability {CAP_INPUT,CAP_OUTPUT,CAP_ANALOG_IN}
-//	pwm := []Capability {CAP_INPUT,CAP_OUTPUT,CAP_PWM}
-//	readonly := []Capability {CAP_INPUT}
+	gpioCap := []Capability{
+		CAP_OUTPUT,
+		CAP_INPUT,
+		CAP_INPUT_PULLUP,
+		CAP_INPUT_PULLDOWN,
+	}
+	//	analog := []Capability {CAP_INPUT,CAP_OUTPUT,CAP_ANALOG_IN}
+	//	pwm := []Capability {CAP_INPUT,CAP_OUTPUT,CAP_PWM}
+	//	readonly := []Capability {CAP_INPUT}
 
 	pinMap = make(HardwarePinMap)
 
 	for i, hw := range beaglePins {
 		// @todo select profile based on extra info added to beaglePins. Notable
 		// exception is analog pins.
-		profile := general;
+		profile := gpioCap
 		pinMap.add(Pin(i), hw.gpioName, profile)
 	}
 
-	// pinMap.add(0, "HWPin0", general)
-	// pinMap.add(1, "HWPin1", readonly)
-	// pinMap.add(2, "HWPin2", general)
-	// pinMap.add(3, "HWPin3", general)
-	// pinMap.add(4, "HWPin4", general)
-	// pinMap.add(5, "HWPin5", general)
-	// pinMap.add(6, "HWPin6", analog)
-	// pinMap.add(7, "HWPin7", pwm)
 	return
 }
-
 
 // # _UART_PORT is a wrapper class for pySerial to enable Arduino-like access
 // # to the UART1, UART2, UART4, and UART5 serial ports on the expansion headers:
@@ -679,26 +679,27 @@ func (d *BeagleBoneDriver) PinMap() (pinMap HardwarePinMap) {
 func (d *BeagleBoneDriver) analogInit() {
 
 }
-  // """ Initializes the on-board 8ch 12bit ADC. """
-  // # Enable ADC module clock, though should already be enabled on
-  // # newer Angstrom images:
-  // _setReg(CM_WKUP_ADC_TSC_CLKCTRL, MODULEMODE_ENABLE)
-  // # Wait for enable complete:
-  // while (_getReg(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK): time.sleep(0.1)
 
-  // # Software reset:
-  // _setReg(ADC_SYSCONFIG, ADC_SOFTRESET)
-  // while(_getReg(ADC_SYSCONFIG) & ADC_SOFTRESET): pass
+// """ Initializes the on-board 8ch 12bit ADC. """
+// # Enable ADC module clock, though should already be enabled on
+// # newer Angstrom images:
+// _setReg(CM_WKUP_ADC_TSC_CLKCTRL, MODULEMODE_ENABLE)
+// # Wait for enable complete:
+// while (_getReg(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK): time.sleep(0.1)
 
-  // # Make sure STEPCONFIG write protect is off:
-  // _setReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
+// # Software reset:
+// _setReg(ADC_SYSCONFIG, ADC_SOFTRESET)
+// while(_getReg(ADC_SYSCONFIG) & ADC_SOFTRESET): pass
 
-  // # Set STEPCONFIG1-STEPCONFIG8 to correspond to ADC inputs 0-7:
-  // for i in xrange(8):
-  //   config = SEL_INP('AIN%i' % i)
-  //   _setReg(eval('ADCSTEPCONFIG%i' % (i+1)), config)
-  // # Now we can enable ADC subsystem, leaving write protect off:
-  // _orReg(ADC_CTRL, TSC_ADC_SS_ENABLE)
+// # Make sure STEPCONFIG write protect is off:
+// _setReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
+
+// # Set STEPCONFIG1-STEPCONFIG8 to correspond to ADC inputs 0-7:
+// for i in xrange(8):
+//   config = SEL_INP('AIN%i' % i)
+//   _setReg(eval('ADCSTEPCONFIG%i' % (i+1)), config)
+// # Now we can enable ADC subsystem, leaving write protect off:
+// _orReg(ADC_CTRL, TSC_ADC_SS_ENABLE)
 
 // def _analog_cleanup():
 //   # Software reset:
