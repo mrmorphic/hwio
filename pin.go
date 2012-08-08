@@ -14,9 +14,14 @@ const (
 // String representation of pin IO mode
 func (mode PinIOMode) String() string {
 	switch mode {
-		case INPUT: return "INPUT"
-		case OUTPUT: return "OUTPUT"
-		case INPUT_PULLUP: return "INPUT_PULLUP"
+	case INPUT:
+		return "INPUT"
+	case OUTPUT:
+		return "OUTPUT"
+	case INPUT_PULLUP:
+		return "INPUT_PULLUP"
+	case INPUT_PULLDOWN:
+		return "INPUT_PULLDOWN"
 	}
 	return ""
 }
@@ -24,18 +29,18 @@ func (mode PinIOMode) String() string {
 // Convenience constants for digital pin values.
 const (
 	HIGH = 1
-	LOW = 0
+	LOW  = 0
 )
 
 type Pin int
 
 type PinDef struct {
-	pin Pin						// the pin, also in the map key of HardwarePinMap
-	hwPinRef string				// the hardware name of the pin, driver specific
-	capabilities CapabilitySet	// set of capabilities of the pin
+	pin          Pin           // the pin, also in the map key of HardwarePinMap
+	hwPinRef     string        // the hardware name of the pin, driver specific
+	capabilities CapabilitySet // set of capabilities of the pin
 }
 
-type HardwarePinMap map[Pin] *PinDef
+type HardwarePinMap map[Pin]*PinDef
 
 // Add a pin to the map
 func (m HardwarePinMap) add(pin Pin, ref string, cap CapabilitySet) {
@@ -56,8 +61,8 @@ func (pd *PinDef) String() string {
 
 // Determine if a pin has a particular capability.
 func (pd *PinDef) HasCapability(cap Capability) bool {
-//	fmt.Printf("HasCap: checking (%s) has capability %s", pd.String(), cap.String())
-	for _,v := range pd.capabilities {
+	//	fmt.Printf("HasCap: checking (%s) has capability %s", pd.String(), cap.String())
+	for _, v := range pd.capabilities {
 		if v == cap {
 			return true
 		}
