@@ -121,6 +121,8 @@ func checkPinMode(mode PinIOMode, pd *PinDef) (e error) {
 		ok = pd.HasCapability(CAP_OUTPUT)
 	case INPUT_PULLUP:
 		ok = pd.HasCapability(CAP_INPUT_PULLUP)
+	case INPUT_PULLDOWN:
+		ok = pd.HasCapability(CAP_INPUT_PULLDOWN)
 	}
 	if ok {
 		return nil
