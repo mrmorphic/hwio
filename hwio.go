@@ -161,7 +161,7 @@ func DigitalRead(pin Pin) (result int, e error) {
 			e = errors.New(fmt.Sprintf("DigitalRead: pin %d mode has not been set", pin))
 			return
 		}
-		if a.pinIOMode != INPUT && a.pinIOMode != INPUT_PULLUP {
+		if a.pinIOMode != INPUT && a.pinIOMode != INPUT_PULLUP && a.pinIOMode != INPUT_PULLDOWN {
 			e = errors.New(fmt.Sprintf("DigitalRead: pin %d mode is not set for input", pin))
 			return
 		}
