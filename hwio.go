@@ -59,7 +59,7 @@ func determineDriver() {
 // otherwise return no error.
 func assertDriver() error {
 	if driver == nil {
-		return errors.New("armhw has no configured driver")
+		return errors.New("hwio has no configured driver")
 	}
 	return nil
 }
