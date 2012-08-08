@@ -76,8 +76,11 @@ pin can have a different set of capabilities, there is no distinction between
 analog and digital pins as there is in Arduino; there is one set of pins, which
 may support digital and/or analog capabilities.
 
-The caller generally works with logic pin numbers. The hardware driver exposes
-the hardware-specific names, however.
+The caller generally works with logical pin numbers, which are conceptually easier
+for beginners as they correspond to physical pins on a device. The hardware driver
+exposesthe hardware-specific names, however. Generally, a driver should provide
+a beginners document that shows the logical pin numbers and how they map to physical
+connectors to make it easier for beginners.
 
 ### Prerequisites
 
@@ -100,6 +103,7 @@ _I'll do this when it is in a more stable state._
  *	SPI support; consider augmenting ShiftIn and ShiftOut to use hardware pins
  	if appropriate
  *	bit functions if they are not already in the go run time
+ *	define a way to model multi-pin capabilities. e.g LCD or MMC on BeagleBone
  *	LCD, particularly HD44780 (lib)
  *	Servo (lib)
  *	Stepper (lib)
