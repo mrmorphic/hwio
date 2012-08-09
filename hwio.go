@@ -84,6 +84,16 @@ func GetDefinedPins() HardwarePinMap {
 	return definedPins
 }
 
+// Returns a Pin given a canonical name for the pin.
+// e.g. to get the pin number of P8.13 on a beaglebone,
+//     pin := hwio.GetPin("P8.13")
+// This function should not generally be relied on for performance. For max speed, call this
+// for each pin you use once on init, and use the returned Pin values thereafter.
+func GetPin(cname string) Pin {
+	// @todo: implement GetPin by augmenting hardware pin map with the aliases of the pin
+	return Pin(0)
+}
+
 // Set error checking. This should be called before pin assignments.
 func SetErrorChecking(check bool) {
 	errorChecking = check
@@ -225,6 +235,7 @@ func DelayMicroseconds(duration int) {
 	time.Sleep(time.Duration(duration) * time.Microsecond)
 }
 
+// @todo DebugPinMap: sort
 func DebugPinMap() {
 	fmt.Println("HardwarePinMap:")
 	for key, val := range definedPins {

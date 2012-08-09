@@ -30,6 +30,9 @@ import (
 	"os"
 	"strconv"
 	"syscall"
+	"errors"
+	"fmt"
+	"time"
 )
 
 // Represents info we need to know about a pin on the BeagleBone.
@@ -40,6 +43,16 @@ type BeaglePin struct {
 	port      uint   // The GPIO port
 	bit       uint   // A single bit in the position of the I/O value on the port
 	mode0Name string // mode 0 signal name, used by the muxer
+	adcEnable uint   // bit mask for analog pin control
+}
+
+func (p BeaglePin) GetName() string {
+	return p.gpioName
+}
+
+// internal function to identify an analog pin from config
+func (p BeaglePin) isAnalogPin() bool {
+	return p.adcEnable != 0
 }
 
 const (
@@ -52,16 +65,16 @@ const (
 	GPIO3 = 0x481ae000 - MMAP_OFFSET
 
 	//	CM_PER = 0x44e00000-MMAP_OFFSET
-	//	CM_WKUP = 0x44e00400-MMAP_OFFSET
+	CM_WKUP = 0x44e00400-MMAP_OFFSET
 
 	//	CM_PER_EPWMSS0_CLKCTRL = 0xd4+CM_PER
 	//	CM_PER_EPWMSS1_CLKCTRL = 0xcc+CM_PER
 	//	CM_PER_EPWMSS2_CLKCTRL = 0xd8+CM_PER
 
-	//	CM_WKUP_ADC_TSC_CLKCTRL = 0xbc+CM_WKUP
+	CM_WKUP_ADC_TSC_CLKCTRL = 0xbc+CM_WKUP
 
-	//	MODULEMODE_ENABLE = 0x02
-	//	IDLEST_MASK = 0x03<<16
+	MODULEMODE_ENABLE = 0x02
+	IDLEST_MASK = 0x03<<16
 
 	// //# To enable module clock:
 	// //#  _setReg(CM_WKUP_module_CLKCTRL, MODULEMODE_ENABLE)
@@ -92,27 +105,28 @@ const (
 // GPIO_CLEARDATAOUT = 0x190
 // GPIO_SETDATAOUT   = 0x194
 
-// ##############################
-// ##--- Start ADC config: ----##
 
-// ADC_TSC = 0x44e0d000-MMAP_OFFSET
+	// Start of ADC config
+	ADC_TSC = 0x44e0d000-MMAP_OFFSET
 
-// ## Registers:
+	// SYSCONFIG register
+	ADC_SYSCONFIG = ADC_TSC+0x10
 
-// ADC_SYSCONFIG = ADC_TSC+0x10
+	// @todo find out the meaning of ADC_SOFTRESET. This bit in SYSCONFIG register is marked unused
+	ADC_SOFTRESET = 0x01
 
-// ADC_SOFTRESET = 0x01
+	// CTLR register
+	ADC_CTRL = ADC_TSC+0x40
 
-// #--- ADC_CTRL ---
-// ADC_CTRL = ADC_TSC+0x40
-
-// ADC_STEPCONFIG_WRITE_PROTECT_OFF = 0x01<<2
+	// Bit in CTRL to disable write protect on step config registers
+	ADC_STEPCONFIG_WRITE_PROTECT_OFF = 0x01<<2
 // # Write protect default on, must first turn off to change stepconfig:
 // #  _setReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
 // # To set write protect on:
 // #  _clearReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
 
-// TSC_ADC_SS_ENABLE = 0x01 
+	// Bit in CTRL to enable ADC, which should be done after setting up other ADC registers
+	TSC_ADC_SS_ENABLE = 0x01
 // # To enable:
 // # _setReg(ADC_CTRL, TSC_ADC_SS_ENABLE)
 // #  This will turn STEPCONFIG write protect back on 
@@ -122,31 +136,31 @@ const (
 
 // ADC_CLKDIV = ADC_TSC+0x4c  # Write desired value-1
 
-// #--- ADC_STEPENABLE ---
-// ADC_STEPENABLE = ADC_TSC+0x54
+	// STEPENABLE register
+	ADC_STEPENABLE = ADC_TSC+0x54
 
 // ADC_ENABLE = lambda AINx: 0x01<<(ADC[AINx]+1)
 // #----------------------
 
 // ADC_IDLECONFIG = ADC_TSC+0x58
 
-// #--- ADC STEPCONFIG ---
-// ADCSTEPCONFIG1 = ADC_TSC+0x64
-// ADCSTEPDELAY1  = ADC_TSC+0x68
-// ADCSTEPCONFIG2 = ADC_TSC+0x6c
-// ADCSTEPDELAY2  = ADC_TSC+0x70
-// ADCSTEPCONFIG3 = ADC_TSC+0x74
-// ADCSTEPDELAY3  = ADC_TSC+0x78
-// ADCSTEPCONFIG4 = ADC_TSC+0x7c
-// ADCSTEPDELAY4  = ADC_TSC+0x80
-// ADCSTEPCONFIG5 = ADC_TSC+0x84
-// ADCSTEPDELAY5  = ADC_TSC+0x88
-// ADCSTEPCONFIG6 = ADC_TSC+0x8c
-// ADCSTEPDELAY6  = ADC_TSC+0x90
-// ADCSTEPCONFIG7 = ADC_TSC+0x94
-// ADCSTEPDELAY7  = ADC_TSC+0x98
-// ADCSTEPCONFIG8 = ADC_TSC+0x9c
-// ADCSTEPDELAY8  = ADC_TSC+0xa0
+	// ADC STEPCONFIG registers
+	ADCSTEPCONFIG1 = ADC_TSC+0x64
+	ADCSTEPDELAY1  = ADC_TSC+0x68
+	ADCSTEPCONFIG2 = ADC_TSC+0x6c
+	ADCSTEPDELAY2  = ADC_TSC+0x70
+	ADCSTEPCONFIG3 = ADC_TSC+0x74
+	ADCSTEPDELAY3  = ADC_TSC+0x78
+	ADCSTEPCONFIG4 = ADC_TSC+0x7c
+	ADCSTEPDELAY4  = ADC_TSC+0x80
+	ADCSTEPCONFIG5 = ADC_TSC+0x84
+	ADCSTEPDELAY5  = ADC_TSC+0x88
+	ADCSTEPCONFIG6 = ADC_TSC+0x8c
+	ADCSTEPDELAY6  = ADC_TSC+0x90
+	ADCSTEPCONFIG7 = ADC_TSC+0x94
+	ADCSTEPDELAY7  = ADC_TSC+0x98
+	ADCSTEPCONFIG8 = ADC_TSC+0x9c
+	ADCSTEPDELAY8  = ADC_TSC+0xa0
 // # Only need the first 8 steps - 1 for each AIN pin
 
 // ADC_RESET = 0x00 # Default value of STEPCONFIG
@@ -168,26 +182,12 @@ const (
 
 // #----------------------
 
-// #--- ADC FIFO ---
-// ADC_FIFO0DATA = ADC_TSC+0x100
-
-// ADC_FIFO_MASK = 0xfff
-// # ADC result = _getReg(ADC_FIFO0DATA)&ADC_FIFO_MASK
-// #----------------
+	// ADC FIFO
+	ADC_FIFO0DATA = ADC_TSC+0x100
+	ADC_FIFO_MASK = 0xfff
 
 // ## ADC pins:
 
-// ADC = {
-//   'AIN0' : 0x00,
-//   'AIN1' : 0x01,
-//   'AIN2' : 0x02,
-//   'AIN3' : 0x03,
-//   'AIN4' : 0x04,
-//   'AIN5' : 0x05,
-//   'AIN6' : 0x06,
-//   'AIN7' : 0x07,
-//   'VSYS' : 0x07
-// }
 // # And some constants so the user doesn't need to use strings:
 // AIN0 = A0 = 'AIN0'
 // AIN1 = A1 = 'AIN1'
@@ -233,88 +233,88 @@ func init() {
 	// @todo Review for correctness against specs. Notable mistake is USR0 and USR1 having the same pin mask
 	p := []*BeaglePin{
 		// P8
-		&BeaglePin{"P8.3", "GPIO1_6", GPIO1, 1 << 6, "gpmc_ad6"},
-		&BeaglePin{"P8.4", "GPIO1_7", GPIO1, 1 << 7, "gpmc_ad7"},
-		&BeaglePin{"P8.5", "GPIO1_2", GPIO1, 1 << 2, "gpmc_ad2"},
-		&BeaglePin{"P8.6", "GPIO1_3", GPIO1, 1 << 3, "gpmc_ad3"},
-		&BeaglePin{"P8.7", "GPIO2_2", GPIO2, 1 << 2, "gpmc_advn_ale"},
-		&BeaglePin{"P8.8", "GPIO2_3", GPIO2, 1 << 3, "gpmc_oen_ren"},
-		&BeaglePin{"P8.9", "GPIO2_5", GPIO2, 1 << 5, "gpmc_ben0_cle"},
-		&BeaglePin{"P8.10", "GPIO2_4", GPIO2, 1 << 4, "gpmc_wen"},
-		&BeaglePin{"P8.11", "GPIO1_13", GPIO1, 1 << 13, "gpmc_ad13"},
-		&BeaglePin{"P8.12", "GPIO1_12", GPIO1, 1 << 12, "gpmc_ad12"},
-		&BeaglePin{"P8.13", "GPIO0_23", GPIO0, 1 << 23, "gpmc_ad9"},
-		&BeaglePin{"P8.14", "GPIO0_26", GPIO0, 1 << 26, "gpmc_ad10"},
-		&BeaglePin{"P8.15", "GPIO1_15", GPIO1, 1 << 15, "gpmc_ad15"},
-		&BeaglePin{"P8.16", "GPIO1_14", GPIO1, 1 << 14, "gpmc_ad14"},
-		&BeaglePin{"P8.17", "GPIO0_27", GPIO0, 1 << 27, "gpmc_ad11"},
-		&BeaglePin{"P8.18", "GPIO2_1", GPIO2, 1 << 1, "gpmc_clk"},
-		&BeaglePin{"P8.19", "GPIO0_22", GPIO0, 1 << 22, "gpmc_ad8"},
-		&BeaglePin{"P8.20", "GPIO1_31", GPIO1, 1 << 31, "gpmc_csn2"},
-		&BeaglePin{"P8.21", "GPIO1_30", GPIO1, 1 << 30, "gpmc_csn1"},
-		&BeaglePin{"P8.22", "GPIO1_5", GPIO1, 1 << 5, "gpmc_ad5"},
-		&BeaglePin{"P8.23", "GPIO1_4", GPIO1, 1 << 4, "gpmc_ad4"},
-		&BeaglePin{"P8.24", "GPIO1_1", GPIO1, 1 << 1, "gpmc_ad1"},
-		&BeaglePin{"P8.25", "GPIO1_0", GPIO1, 1, "gpmc_ad0"},
-		&BeaglePin{"P8.26", "GPIO1_29", GPIO1, 1 << 29, "gpmc_csn0"},
-		&BeaglePin{"P8.27", "GPIO2_22", GPIO2, 1 << 22, "lcd_vsync"},
-		&BeaglePin{"P8.28", "GPIO2_24", GPIO2, 1 << 24, "lcd_pclk"},
-		&BeaglePin{"P8.29", "GPIO2_23", GPIO2, 1 << 23, "lcd_hsync"},
-		&BeaglePin{"P8.30", "GPIO2_25", GPIO2, 1 << 25, "lcd_ac_bias_en"},
-		&BeaglePin{"P8.31", "GPIO0_10", GPIO0, 1 << 10, "lcd_data14"},
-		&BeaglePin{"P8.32", "GPIO0_11", GPIO0, 1 << 11, "lcd_data15"},
-		&BeaglePin{"P8.33", "GPIO0_9", GPIO0, 1 << 9, "lcd_data13"},
-		&BeaglePin{"P8.34", "GPIO2_17", GPIO2, 1 << 17, "lcd_data11"},
-		&BeaglePin{"P8.35", "GPIO0_8", GPIO0, 1 << 8, "lcd_data12"},
-		&BeaglePin{"P8.36", "GPIO2_16", GPIO2, 1 << 16, "lcd_data10"},
-		&BeaglePin{"P8.37", "GPIO2_14", GPIO2, 1 << 14, "lcd_data8"},
-		&BeaglePin{"P8.38", "GPIO2_15", GPIO2, 1 << 15, "lcd_data9"},
-		&BeaglePin{"P8.39", "GPIO2_12", GPIO2, 1 << 12, "lcd_data6"},
-		&BeaglePin{"P8.40", "GPIO2_13", GPIO2, 1 << 13, "lcd_data7"},
-		&BeaglePin{"P8.41", "GPIO2_10", GPIO2, 1 << 10, "lcd_data4"},
-		&BeaglePin{"P8.42", "GPIO2_11", GPIO2, 1 << 11, "lcd_data5"},
-		&BeaglePin{"P8.43", "GPIO2_8", GPIO2, 1 << 8, "lcd_data2"},
-		&BeaglePin{"P8.44", "GPIO2_9", GPIO2, 1 << 9, "lcd_data3"},
-		&BeaglePin{"P8.45", "GPIO2_6", GPIO2, 1 << 6, "lcd_data0"},
-		&BeaglePin{"P8.46", "GPIO2_7", GPIO2, 1 << 7, "lcd_data1"},
+		&BeaglePin{"P8.3", "GPIO1_6", GPIO1, 1 << 6, "gpmc_ad6", 0},
+		&BeaglePin{"P8.4", "GPIO1_7", GPIO1, 1 << 7, "gpmc_ad7", 0},
+		&BeaglePin{"P8.5", "GPIO1_2", GPIO1, 1 << 2, "gpmc_ad2", 0},
+		&BeaglePin{"P8.6", "GPIO1_3", GPIO1, 1 << 3, "gpmc_ad3", 0},
+		&BeaglePin{"P8.7", "GPIO2_2", GPIO2, 1 << 2, "gpmc_advn_ale", 0},
+		&BeaglePin{"P8.8", "GPIO2_3", GPIO2, 1 << 3, "gpmc_oen_ren", 0},
+		&BeaglePin{"P8.9", "GPIO2_5", GPIO2, 1 << 5, "gpmc_ben0_cle", 0},
+		&BeaglePin{"P8.10", "GPIO2_4", GPIO2, 1 << 4, "gpmc_wen", 0},
+		&BeaglePin{"P8.11", "GPIO1_13", GPIO1, 1 << 13, "gpmc_ad13", 0},
+		&BeaglePin{"P8.12", "GPIO1_12", GPIO1, 1 << 12, "gpmc_ad12", 0},
+		&BeaglePin{"P8.13", "GPIO0_23", GPIO0, 1 << 23, "gpmc_ad9", 0},
+		&BeaglePin{"P8.14", "GPIO0_26", GPIO0, 1 << 26, "gpmc_ad10", 0},
+		&BeaglePin{"P8.15", "GPIO1_15", GPIO1, 1 << 15, "gpmc_ad15", 0},
+		&BeaglePin{"P8.16", "GPIO1_14", GPIO1, 1 << 14, "gpmc_ad14", 0},
+		&BeaglePin{"P8.17", "GPIO0_27", GPIO0, 1 << 27, "gpmc_ad11", 0},
+		&BeaglePin{"P8.18", "GPIO2_1", GPIO2, 1 << 1, "gpmc_clk", 0},
+		&BeaglePin{"P8.19", "GPIO0_22", GPIO0, 1 << 22, "gpmc_ad8", 0},
+		&BeaglePin{"P8.20", "GPIO1_31", GPIO1, 1 << 31, "gpmc_csn2", 0},
+		&BeaglePin{"P8.21", "GPIO1_30", GPIO1, 1 << 30, "gpmc_csn1", 0},
+		&BeaglePin{"P8.22", "GPIO1_5", GPIO1, 1 << 5, "gpmc_ad5", 0},
+		&BeaglePin{"P8.23", "GPIO1_4", GPIO1, 1 << 4, "gpmc_ad4", 0},
+		&BeaglePin{"P8.24", "GPIO1_1", GPIO1, 1 << 1, "gpmc_ad1", 0},
+		&BeaglePin{"P8.25", "GPIO1_0", GPIO1, 1, "gpmc_ad0", 0},
+		&BeaglePin{"P8.26", "GPIO1_29", GPIO1, 1 << 29, "gpmc_csn0", 0},
+		&BeaglePin{"P8.27", "GPIO2_22", GPIO2, 1 << 22, "lcd_vsync", 0},
+		&BeaglePin{"P8.28", "GPIO2_24", GPIO2, 1 << 24, "lcd_pclk", 0},
+		&BeaglePin{"P8.29", "GPIO2_23", GPIO2, 1 << 23, "lcd_hsync", 0},
+		&BeaglePin{"P8.30", "GPIO2_25", GPIO2, 1 << 25, "lcd_ac_bias_en", 0},
+		&BeaglePin{"P8.31", "GPIO0_10", GPIO0, 1 << 10, "lcd_data14", 0},
+		&BeaglePin{"P8.32", "GPIO0_11", GPIO0, 1 << 11, "lcd_data15", 0},
+		&BeaglePin{"P8.33", "GPIO0_9", GPIO0, 1 << 9, "lcd_data13", 0},
+		&BeaglePin{"P8.34", "GPIO2_17", GPIO2, 1 << 17, "lcd_data11", 0},
+		&BeaglePin{"P8.35", "GPIO0_8", GPIO0, 1 << 8, "lcd_data12", 0},
+		&BeaglePin{"P8.36", "GPIO2_16", GPIO2, 1 << 16, "lcd_data10", 0},
+		&BeaglePin{"P8.37", "GPIO2_14", GPIO2, 1 << 14, "lcd_data8", 0},
+		&BeaglePin{"P8.38", "GPIO2_15", GPIO2, 1 << 15, "lcd_data9", 0},
+		&BeaglePin{"P8.39", "GPIO2_12", GPIO2, 1 << 12, "lcd_data6", 0},
+		&BeaglePin{"P8.40", "GPIO2_13", GPIO2, 1 << 13, "lcd_data7", 0},
+		&BeaglePin{"P8.41", "GPIO2_10", GPIO2, 1 << 10, "lcd_data4", 0},
+		&BeaglePin{"P8.42", "GPIO2_11", GPIO2, 1 << 11, "lcd_data5", 0},
+		&BeaglePin{"P8.43", "GPIO2_8", GPIO2, 1 << 8, "lcd_data2", 0},
+		&BeaglePin{"P8.44", "GPIO2_9", GPIO2, 1 << 9, "lcd_data3", 0},
+		&BeaglePin{"P8.45", "GPIO2_6", GPIO2, 1 << 6, "lcd_data0", 0},
+		&BeaglePin{"P8.46", "GPIO2_7", GPIO2, 1 << 7, "lcd_data1", 0},
 
 		// P9
-		&BeaglePin{"P9.11", "GPIO0_30", GPIO0, 1 << 30, "gpmc_wait0"},
-		&BeaglePin{"P9.12", "GPIO1_28", GPIO1, 1 << 28, "gpmc_ben1"},
-		&BeaglePin{"P9.13", "GPIO0_31", GPIO0, 1 << 31, "gpmc_wpn"},
-		&BeaglePin{"P9.14", "GPIO1_18", GPIO1, 1 << 18, "gpmc_a2"},
-		&BeaglePin{"P9.15", "GPIO1_16", GPIO1, 1 << 16, "gpmc_a0"},
-		&BeaglePin{"P9.16", "GPIO1_19", GPIO1, 1 << 19, "gpmc_a3"},
-		&BeaglePin{"P9.17", "GPIO0_5", GPIO0, 1 << 5, "spi0_cs0"},
-		&BeaglePin{"P9.18", "GPIO0_4", GPIO0, 1 << 4, "spi0_d1"},
-		&BeaglePin{"P9.19", "GPIO0_13", GPIO0, 1 << 13, "uart1_rtsn"},
-		&BeaglePin{"P9.20", "GPIO0_12", GPIO0, 1 << 12, "uart1_ctsn"},
-		&BeaglePin{"P9.21", "GPIO0_3", GPIO0, 1 << 3, "spi0_d0"},
-		&BeaglePin{"P9.22", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},
-		&BeaglePin{"P9.23", "GPIO1_17", GPIO1, 1 << 17, "gpmc_a1"},
-		&BeaglePin{"P9.24", "GPIO0_15", GPIO0, 1 << 15, "uart1_txd"},
-		&BeaglePin{"P9.25", "GPIO3_21", GPIO3, 1 << 21, "mcasp0_ahclkx"},
-		&BeaglePin{"P9.26", "GPIO0_14", GPIO0, 1 << 14, "uart1_rxd"},
-		&BeaglePin{"P9.27", "GPIO3_19", GPIO3, 1 << 19, "mcasp0_fsr"},
-		&BeaglePin{"P9.28", "GPIO3_17", GPIO3, 1 << 17, "mcasp0_ahclkr"},
-		&BeaglePin{"P9.29", "GPIO3_15", GPIO3, 1 << 15, "mcasp0_fsx"},
-		&BeaglePin{"P9.30", "GPIO3_16", GPIO3, 1 << 16, "mcasp0_axr0"},
-		&BeaglePin{"P9.31", "GPIO3_14", GPIO3, 1 << 14, "mcasp0_aclkx"},
-		//		&BeaglePin{"P9.33", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN4
-		//		&BeaglePin{"P9.35", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN6
-		//		&BeaglePin{"P9.36", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN5
-		//		&BeaglePin{"P9.37", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN2
-		//		&BeaglePin{"P9.38", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN3
-		//		&BeaglePin{"P9.39", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN0
-		//		&BeaglePin{"P9.40", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk"},         // todo: AIN1
-		&BeaglePin{"P9.41", "GPIO0_20", GPIO0, 1 << 20, "xdma_event_intr1"}, // todo: check muxer supports
-		&BeaglePin{"P9.42", "GPIO0_7", GPIO0, 1 << 7, "ecap0_in_pwm0_out"},
+		&BeaglePin{"P9.11", "GPIO0_30", GPIO0, 1 << 30, "gpmc_wait0", 0},
+		&BeaglePin{"P9.12", "GPIO1_28", GPIO1, 1 << 28, "gpmc_ben1", 0},
+		&BeaglePin{"P9.13", "GPIO0_31", GPIO0, 1 << 31, "gpmc_wpn", 0},
+		&BeaglePin{"P9.14", "GPIO1_18", GPIO1, 1 << 18, "gpmc_a2", 0},
+		&BeaglePin{"P9.15", "GPIO1_16", GPIO1, 1 << 16, "gpmc_a0", 0},
+		&BeaglePin{"P9.16", "GPIO1_19", GPIO1, 1 << 19, "gpmc_a3", 0},
+		&BeaglePin{"P9.17", "GPIO0_5", GPIO0, 1 << 5, "spi0_cs0", 0},
+		&BeaglePin{"P9.18", "GPIO0_4", GPIO0, 1 << 4, "spi0_d1", 0},
+		&BeaglePin{"P9.19", "GPIO0_13", GPIO0, 1 << 13, "uart1_rtsn", 0},
+		&BeaglePin{"P9.20", "GPIO0_12", GPIO0, 1 << 12, "uart1_ctsn", 0},
+		&BeaglePin{"P9.21", "GPIO0_3", GPIO0, 1 << 3, "spi0_d0", 0},
+		&BeaglePin{"P9.22", "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk", 0},
+		&BeaglePin{"P9.23", "GPIO1_17", GPIO1, 1 << 17, "gpmc_a1", 0},
+		&BeaglePin{"P9.24", "GPIO0_15", GPIO0, 1 << 15, "uart1_txd", 0},
+		&BeaglePin{"P9.25", "GPIO3_21", GPIO3, 1 << 21, "mcasp0_ahclkx", 0},
+		&BeaglePin{"P9.26", "GPIO0_14", GPIO0, 1 << 14, "uart1_rxd", 0},
+		&BeaglePin{"P9.27", "GPIO3_19", GPIO3, 1 << 19, "mcasp0_fsr", 0},
+		&BeaglePin{"P9.28", "GPIO3_17", GPIO3, 1 << 17, "mcasp0_ahclkr", 0},
+		&BeaglePin{"P9.29", "GPIO3_15", GPIO3, 1 << 15, "mcasp0_fsx", 0},
+		&BeaglePin{"P9.30", "GPIO3_16", GPIO3, 1 << 16, "mcasp0_axr0", 0},
+		&BeaglePin{"P9.31", "GPIO3_14", GPIO3, 1 << 14, "mcasp0_aclkx", 0},
+		&BeaglePin{"P9.33", "AIN4", 0, 0, "ain4", 1<<5},
+		&BeaglePin{"P9.35", "AIN6", 0, 0, "ain6", 1<<7},
+		&BeaglePin{"P9.36", "AIN5", 0, 0, "ain5", 1<<6},
+		&BeaglePin{"P9.37", "AIN2", 0, 0, "ain2", 1<<3},
+		&BeaglePin{"P9.38", "AIN3", 0, 0, "ain3", 1<<4},
+		&BeaglePin{"P9.39", "AIN0", 0, 0, "ain0", 1<<1},
+		&BeaglePin{"P9.40", "AIN1", 0, 0, "ain1", 1<<2},
+		&BeaglePin{"P9.41", "GPIO0_20", GPIO0, 1 << 20, "xdma_event_intr1", 0},
+		&BeaglePin{"P9.42", "GPIO0_7", GPIO0, 1 << 7, "ecap0_in_pwm0_out", 0},
 
 		// USR LEDs
-		&BeaglePin{"USR0", "USR0", GPIO1, 1 << 21, "gpmc_a5"},
-		&BeaglePin{"USR1", "USR1", GPIO1, 1 << 22, "gpmc_a6"},
-		&BeaglePin{"USR2", "USR2", GPIO1, 1 << 23, "gpmc_a7"},
-		&BeaglePin{"USR3", "USR3", GPIO1, 1 << 24, "gpmc_a8"},
+		&BeaglePin{"USR0", "USR0", GPIO1, 1 << 21, "gpmc_a5", 0},
+		&BeaglePin{"USR1", "USR1", GPIO1, 1 << 22, "gpmc_a6", 0},
+		&BeaglePin{"USR2", "USR2", GPIO1, 1 << 23, "gpmc_a7", 0},
+		&BeaglePin{"USR3", "USR3", GPIO1, 1 << 24, "gpmc_a8", 0},
 	}
 	beaglePins = p
 }
@@ -349,13 +349,22 @@ func (d *BeagleBoneDriver) Close() {
 
 func (d *BeagleBoneDriver) PinMode(pin Pin, mode PinIOMode) error {
 	p := beaglePins[pin]
+
+	// handle analog first, they are simplest from PinMode perspective
+	if p.isAnalogPin() {
+		if mode != INPUT {
+			return errors.New(fmt.Sprintf("Pin %d is an analog pin, and the mode must be INPUT", p))
+		}
+		return nil	// nothing to set up
+	}
+
 	if mode == OUTPUT {
-		e := d.pinMux(p.mode0Name, CONF_GPIO_OUTPUT) // _pinMux(GPIO[gpio_pin][2], CONF_GPIO_OUTPUT)
+		e := d.pinMux(p.mode0Name, CONF_GPIO_OUTPUT)
 		if e != nil {
 			return e
 		}
 
-		d.clearReg(p.port+uint(GPIO_OE), p.bit, 32) // _clearReg(GPIO[gpio_pin][0]+GPIO_OE, GPIO[gpio_pin][1])
+		d.clearRegL(p.port+uint(GPIO_OE), p.bit)
 	} else {
 		pull := CONF_PULL_DISABLE
 		// note: pull up/down modes assume that CONF_PULLDOWN resets the pull disable bit
@@ -365,12 +374,15 @@ func (d *BeagleBoneDriver) PinMode(pin Pin, mode PinIOMode) error {
 			pull = CONF_PULLDOWN
 		}
 
-		e := d.pinMux(p.mode0Name, CONF_GPIO_INPUT|uint(pull)) // _pinMux(GPIO[gpio_pin][2], CONF_GPIO_INPUT | pull)
+		e := d.pinMux(p.mode0Name, CONF_GPIO_INPUT|uint(pull))
 		if e != nil {
 			return e
 		}
 
-		d.orReg(p.port+uint(GPIO_OE), p.bit, 32) // _orReg(GPIO[gpio_pin][0]+GPIO_OE, GPIO[gpio_pin][1])
+//		fmt.Printf("R/W dir reg BEFORE value is %x\n", d.getRegL(p.port+uint(GPIO_OE)))
+
+		d.orRegL(p.port+uint(GPIO_OE), p.bit)
+//		fmt.Printf("R/W dir reg AFTER value is %x\n", d.getRegL(p.port+uint(GPIO_OE)))
 	}
 	return nil
 }
@@ -385,35 +397,31 @@ func (d *BeagleBoneDriver) pinMux(mux string, mode uint) error {
 	if e != nil {
 		return e
 	}
-	s := strconv.Itoa(int(mode))
+
+	s := strconv.FormatInt(int64(mode), 16)
+//	fmt.Printf("Writing mode %s to mux file %s\n", s, PINMUX_PATH+mux)
 	f.WriteString(s)
 	return nil
-	//     with open(PINMUX_PATH+fn, 'wb') as f:
-	//       f.write(hex(mode)[2:]) # Write hex string (stripping off '0x')
 }
 
 func (d *BeagleBoneDriver) DigitalWrite(pin Pin, value int) (e error) {
 	p := beaglePins[pin]
 	if value == 0 {
-		d.clearReg(p.port+GPIO_DATAOUT, p.bit, 32)
+		d.clearRegL(p.port+GPIO_DATAOUT, p.bit)
 	} else {
-		d.orReg(p.port+GPIO_DATAOUT, p.bit, 32)
+		d.orRegL(p.port+GPIO_DATAOUT, p.bit)
 	}
 	return nil
 }
 
 func (d *BeagleBoneDriver) DigitalRead(pin Pin) (value int, e error) {
 	p := beaglePins[pin]
-	reg := d.getReg(p.port+GPIO_DATAIN, 32)
+	reg := d.getRegL(p.port+GPIO_DATAIN)
+	//	fmt.Printf("\nraw in: %x (checking bit %d)\n", reg, p.bit)
 	if (reg & p.bit) != 0 {
 		return HIGH, nil
 	}
 	return LOW, nil
-	// """ Returns pin state as 1 or 0. """
-	// assert (gpio_pin in GPIO), "*Invalid GPIO pin: '%s'" % gpio_pin
-	// if (_getReg(GPIO[gpio_pin][0]+GPIO_DATAIN) & GPIO[gpio_pin][1]):
-	//   return 1
-	// return 0
 }
 
 func (d *BeagleBoneDriver) AnalogWrite(pin Pin, value int) (e error) {
@@ -421,21 +429,32 @@ func (d *BeagleBoneDriver) AnalogWrite(pin Pin, value int) (e error) {
 }
 
 func (d *BeagleBoneDriver) AnalogRead(pin Pin) (value int, e error) {
-	// """ Returns analog value read on given analog input pin. """
-	// assert (analog_pin in ADC), "*Invalid analog pin: '%s'" % analog_pin
+//	if d.getRegL(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK == 0 {
+//		// if for any reason the ADC module clock has been shut off, turn it back on
+//		d.analogInit()
+//	}
+
+	p := beaglePins[pin]
 
 	// if (_getReg(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK):
 	//   # The ADC module clock has been shut off, e.g. by a different 
 	//   # PyBBIO script stopping while this one was running, turn back on:
 	//   _analog_init() 
 
+	// ADC_ENABLE = lambda AINx: 0x01<<(ADC[AINx]+1)
+	d.setRegL(ADC_STEPENABLE, p.adcEnable)
 	// # Enable sequncer step that's set for given input:
 	// _setReg(ADC_STEPENABLE, ADC_ENABLE(analog_pin))
+
+	for d.getRegL(ADC_STEPENABLE) & p.adcEnable != 0 { }
+
 	// # Sequencer starts automatically after enabling step, wait for complete:
 	// while(_getReg(ADC_STEPENABLE) & ADC_ENABLE(analog_pin)): pass
 	// # Return 12-bit value from the ADC FIFO register:
 	// return _getReg(ADC_FIFO0DATA) & ADC_FIFO_MASK
-	return 0, nil
+	res := d.getRegL(ADC_FIFO0DATA) & ADC_FIFO_MASK
+	fmt.Printf("register output %x\n", res)
+	return int(res), nil
 }
 
 // def inVolts(adc_value, bits=12, vRef=1.8):
@@ -443,56 +462,36 @@ func (d *BeagleBoneDriver) AnalogRead(pin Pin) (value int, e error) {
 //       to the given number of bits and reference voltage. """
 //   return adc_value*(vRef/2**bits)
 
-// Sets 16 or 32 bit Register at address to its current value AND mask.
-func (d *BeagleBoneDriver) andReg(address uint, mask uint, length uint /* 32 */) {
-	d.setReg(address, d.getReg(address, length)&mask, length)
+// Sets 32 bit Register at address to its current value AND mask.
+func (d *BeagleBoneDriver) andRegL(address uint, mask uint) {
+	d.setRegL(address, d.getRegL(address)&mask)
 }
 
-// Sets 16 or 32 bit Register at address to its current value OR mask.
-func (d *BeagleBoneDriver) orReg(address uint, mask uint, length uint /* 32 */) {
-	d.setReg(address, d.getReg(address, length)|mask, length)
+// Sets 32 bit Register at address to its current value OR mask.
+func (d *BeagleBoneDriver) orRegL(address uint, mask uint) {
+	d.setRegL(address, d.getRegL(address)|mask)
 }
 
-// Clears mask bits in 16 or 32 bit register at given address.
-func (d *BeagleBoneDriver) clearReg(address uint, mask uint, length uint /* 32 */) {
-	d.andReg(address, ^mask, length)
+// Clears mask bits in 32 bit register at given address.
+func (d *BeagleBoneDriver) clearRegL(address uint, mask uint) {
+	d.andRegL(address, ^mask)
 }
 
-// Returns unpacked 16 or 32 bit register value starting from address. length
-// should be 16 or 32. Result is undefined if not one of those values. Integers
+// Returns unpacked 32 bit register value starting from address. Integers
 // are little endian on BeagleBone
-func (d *BeagleBoneDriver) getReg(address uint, length uint) uint {
-	if length == 32 {
-		return uint(d.mmap[address] |
-			d.mmap[address+1]<<8 |
-			d.mmap[address+2]<<16 |
-			d.mmap[address+3]<<24)
-	} else if length == 16 {
-		return uint(d.mmap[address] |
-			d.mmap[address+1]<<8)
-	}
-	return 0
-	//   if (length == 32):
-	//     return struct.unpack("<L", __mmap[address:address+4])[0]
-	//   elif (length == 16):
-	//     return struct.unpack("<H", __mmap[address:address+2])[0]
+func (d *BeagleBoneDriver) getRegL(address uint) (result uint) {
+	result = uint(d.mmap[address])
+	result |= uint(d.mmap[address+1])<<8
+	result |= uint(d.mmap[address+2])<<16
+	result |= uint(d.mmap[address+3])<<24
+	return result
 }
 
-func (d *BeagleBoneDriver) setReg(address uint, value uint, length uint) {
-	if length == 32 {
-		d.mmap[address] = byte(value & 0xff)
-		d.mmap[address+1] = byte((value >> 8) & 0xff)
-		d.mmap[address+2] = byte((value >> 16) & 0xff)
-		d.mmap[address+3] = byte((value >> 24) & 0xff)
-	} else if length == 16 {
-
-	}
-	// def _setReg(address, new_value, length=32):
-	//   """ Sets 16 or 32 bits at given address to given value. """
-	//   if (length == 32):
-	//     __mmap[address:address+4] = struct.pack("<L", new_value)
-	//   elif (length == 16):
-	//     __mmap[address:address+2] = struct.pack("<H", new_value)
+func (d *BeagleBoneDriver) setRegL(address uint, value uint) {
+	d.mmap[address] = byte(value & 0xff)
+	d.mmap[address+1] = byte((value >> 8) & 0xff)
+	d.mmap[address+2] = byte((value >> 16) & 0xff)
+	d.mmap[address+3] = byte((value >> 24) & 0xff)
 }
 
 func (d *BeagleBoneDriver) PinMap() (pinMap HardwarePinMap) {
@@ -658,29 +657,46 @@ func (d *BeagleBoneDriver) PinMap() (pinMap HardwarePinMap) {
 // Serial5 = _UART_PORT('UART5')
 
 func (d *BeagleBoneDriver) analogInit() {
+	// """ Initializes the on-board 8ch 12bit ADC. """
+	// # Enable ADC module clock, though should already be enabled on
+	// # newer Angstrom images:
+	d.setRegL(CM_WKUP_ADC_TSC_CLKCTRL, MODULEMODE_ENABLE)
+	// _setReg(CM_WKUP_ADC_TSC_CLKCTRL, MODULEMODE_ENABLE)
+	// # Wait for enable complete:
+	for d.getRegL(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK != 0 {
+		time.Sleep(100 * time.Microsecond)
+	}
+	// while (_getReg(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK): time.sleep(0.1)
 
+	// # Software reset:
+	d.setRegL(ADC_SYSCONFIG, ADC_SOFTRESET)
+	// _setReg(ADC_SYSCONFIG, ADC_SOFTRESET)
+	for d.getRegL(ADC_SYSCONFIG) & ADC_SOFTRESET != 0 { }
+	// while(_getReg(ADC_SYSCONFIG) & ADC_SOFTRESET): pass
+
+	// # Make sure STEPCONFIG write protect is off:
+	d.setRegL(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
+	// _setReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
+
+	// # Set STEPCONFIG1-STEPCONFIG8 to correspond to ADC inputs 0-7:
+	d.setRegL(ADCSTEPCONFIG1, 0<<19)
+	d.setRegL(ADCSTEPCONFIG2, 1<<19)
+	d.setRegL(ADCSTEPCONFIG3, 2<<19)
+	d.setRegL(ADCSTEPCONFIG4, 3<<19)
+	d.setRegL(ADCSTEPCONFIG5, 4<<19)
+	d.setRegL(ADCSTEPCONFIG6, 5<<19)
+	d.setRegL(ADCSTEPCONFIG7, 6<<19)
+	d.setRegL(ADCSTEPCONFIG8, 7<<19)
+
+	// for i in xrange(8):
+	//   config = SEL_INP('AIN%i' % i)
+	//   _setReg(eval('ADCSTEPCONFIG%i' % (i+1)), config)
+	// # Now we can enable ADC subsystem, leaving write protect off:
+
+	d.orRegL(ADC_CTRL, TSC_ADC_SS_ENABLE)
+	// _orReg(ADC_CTRL, TSC_ADC_SS_ENABLE)
 }
 
-// """ Initializes the on-board 8ch 12bit ADC. """
-// # Enable ADC module clock, though should already be enabled on
-// # newer Angstrom images:
-// _setReg(CM_WKUP_ADC_TSC_CLKCTRL, MODULEMODE_ENABLE)
-// # Wait for enable complete:
-// while (_getReg(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK): time.sleep(0.1)
-
-// # Software reset:
-// _setReg(ADC_SYSCONFIG, ADC_SOFTRESET)
-// while(_getReg(ADC_SYSCONFIG) & ADC_SOFTRESET): pass
-
-// # Make sure STEPCONFIG write protect is off:
-// _setReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
-
-// # Set STEPCONFIG1-STEPCONFIG8 to correspond to ADC inputs 0-7:
-// for i in xrange(8):
-//   config = SEL_INP('AIN%i' % i)
-//   _setReg(eval('ADCSTEPCONFIG%i' % (i+1)), config)
-// # Now we can enable ADC subsystem, leaving write protect off:
-// _orReg(ADC_CTRL, TSC_ADC_SS_ENABLE)
 
 // def _analog_cleanup():
 //   # Software reset:
