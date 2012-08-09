@@ -11,6 +11,8 @@ package hwio
 //
 // Things known to work (tested on hardware):
 // - digital output on all GPIO pins that are exposed on P8 and P9 of the board, and USR0 to USR3
+// - digital input on all GPIO pins that are exposed on P8 and P9 of the board, including pull-up,
+//	 pull-down and pull-disabled modes.
 //
 // WARNINGS:
 // - THIS IS STILL UNDER DEVELOPMENT
@@ -18,7 +20,6 @@ package hwio
 // - ANY CHANGES YOU MAKE TO THIS MAY FRY YOUR BOARD
 // Don't say you weren't warned.
 
-// @todo: Digital input testing
 // @todo: Use set and clear register locations instead for digital write, instead of bit manipulation
 // @todo: Analog pin support
 // @todo: Timers
