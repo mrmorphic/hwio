@@ -67,14 +67,14 @@ func (d *TestDriver) PinMap() (pinMap HardwarePinMap) {
 
 	pinMap = make(HardwarePinMap)
 
-	pinMap.add(0, "HWPin0", general)
-	pinMap.add(1, "HWPin1", readonly)
-	pinMap.add(2, "HWPin2", writeonly)
-	pinMap.add(3, "HWPin3", general)
-	pinMap.add(4, "HWPin4", general)
-	pinMap.add(5, "HWPin5", general)
-	pinMap.add(6, "HWPin6", analog)
-	pinMap.add(7, "HWPin7", pwm)
+	pinMap.add(0, []string{"HWPin0"}, general)
+	pinMap.add(1, []string{"HWPin1"}, readonly)
+	pinMap.add(2, []string{"HWPin2"}, writeonly)
+	pinMap.add(3, []string{"HWPin3"}, general)
+	pinMap.add(4, []string{"HWPin4"}, general)
+	pinMap.add(5, []string{"HWPin5"}, general)
+	pinMap.add(6, []string{"HWPin6"}, analog)
+	pinMap.add(7, []string{"HWPin7"}, pwm)
 	return
 }
 

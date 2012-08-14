@@ -1,5 +1,9 @@
 package hwio
 
+import (
+	"strings"
+)
+
 // Definitions relating to pins.
 type PinIOMode int
 
@@ -9,6 +13,9 @@ const (
 	OUTPUT
 	INPUT_PULLUP
 	INPUT_PULLDOWN
+	// @todo PinIOMode consider an input_analog mode for analog pins. Not an issue on beaglebone,
+	// @todo    but could be an issue on devices that support digital and analog input on the same pin,
+	// @todo    if such devices exist.
 )
 
 // String representation of pin IO mode
@@ -36,15 +43,15 @@ type Pin int
 
 type PinDef struct {
 	pin          Pin           // the pin, also in the map key of HardwarePinMap
-	hwPinRef     string        // the hardware name of the pin, driver specific
+	hwPinRefs    []string      // the hardware name(s) of the pin, driver specific.
 	capabilities CapabilitySet // set of capabilities of the pin
 }
 
 type HardwarePinMap map[Pin]*PinDef
 
 // Add a pin to the map
-func (m HardwarePinMap) add(pin Pin, ref string, cap CapabilitySet) {
-	m[pin] = &PinDef{pin: pin, hwPinRef: ref, capabilities: cap}
+func (m HardwarePinMap) add(pin Pin, refs []string, cap CapabilitySet) {
+	m[pin] = &PinDef{pin: pin, hwPinRefs: refs, capabilities: cap}
 }
 
 // Given a pin number, return it's PinDef, or nil if that pin is not defined in the map
@@ -55,8 +62,14 @@ func (m HardwarePinMap) GetPin(pin Pin) *PinDef {
 // Provide a string representation of a logic pin and the capabilties it
 // supports.
 func (pd *PinDef) String() string {
-	s := pd.hwPinRef + "  cap:" + pd.capabilities.String()
+	s := pd.Names() + "  cap:" + pd.capabilities.String()
 	return s
+}
+
+// From the hwPinRefs, construct a string by appending them together. Not brilliantly efficient,
+// but its most for diagnostics anyway.
+func (pd *PinDef) Names() string {
+	return strings.Join(pd.hwPinRefs, ",")
 }
 
 // Determine if a pin has a particular capability.

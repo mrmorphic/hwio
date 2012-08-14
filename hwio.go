@@ -87,11 +87,22 @@ func GetDefinedPins() HardwarePinMap {
 // Returns a Pin given a canonical name for the pin.
 // e.g. to get the pin number of P8.13 on a beaglebone,
 //     pin := hwio.GetPin("P8.13")
+// Order of search is:
+// - search hwRefs in the pin map in order.
 // This function should not generally be relied on for performance. For max speed, call this
 // for each pin you use once on init, and use the returned Pin values thereafter.
-func GetPin(cname string) Pin {
-	// @todo: implement GetPin by augmenting hardware pin map with the aliases of the pin
-	return Pin(0)
+// Search is case sensitive at the moment
+// @todo GetPin: consider making it case-insensitive on name
+// @todo GetPin: consider allowing an int or int as string to identify logical pin directly
+func GetPin(cname string) (Pin, error) {
+	for pin, pinDef := range definedPins {
+		for _,name := range pinDef.hwPinRefs {
+			if name == cname {
+				return pin, nil
+			}
+		}
+	}
+	return Pin(0), errors.New(fmt.Sprintf("Could not find a pin called %s", cname))
 }
 
 // Set error checking. This should be called before pin assignments.
@@ -126,7 +137,7 @@ func checkPinMode(mode PinIOMode, pd *PinDef) (e error) {
 	ok := false
 	switch mode {
 	case INPUT:
-		ok = pd.HasCapability(CAP_INPUT)
+		ok = pd.HasCapability(CAP_INPUT) || pd.HasCapability(CAP_ANALOG_IN)
 	case OUTPUT:
 		ok = pd.HasCapability(CAP_OUTPUT)
 	case INPUT_PULLUP:
