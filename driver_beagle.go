@@ -345,6 +345,27 @@ type BeagleBoneDriver struct {
 }
 
 func (d *BeagleBoneDriver) Init() error {
+	// The following snippet is from:
+	// https://groups.google.com/forum/?fromgroups=#!topic/golang-nuts/1omyttb2Hlo
+	// This creates a memory map of longs. Given that all our access is 32-bit, this
+	// could speed up access significantly. Need to adjust getRegL to use this and divide
+	// the address offset by 4.
+	//	if F==nil {panic(err)} 
+	//	fd := F.Fd(); 
+	//	addr, _, errno := syscall.Syscall6(syscall.SYS_MMAP, 
+	//							0, uintptr(HandRankSz)*4, 
+	//							1 /* syscall.PROT_READ */, 
+	//							0, uintptr(fd), 0); 
+	//	if errno != 0 { 
+	//		log.Exitf("mmap display: %s", os.Errno(errno)) 
+	//	} 
+	//	HandRanks = (*[HandRankSz]int32)(unsafe.Pointer(addr)); 
+	//	// mmap without touching the pages would be cheating... 
+	//	var sum int32; 
+	//	for hr:=range(HandRanks) { 
+	//		sum ^= HandRanks[hr]; 
+	//	} 
+    
 	// Set up the memory mapped file giving us access to hardware registers
 	file, e := os.OpenFile("/dev/mem", os.O_RDWR|os.O_APPEND, 0)
 	if e != nil {
@@ -500,6 +521,7 @@ func (d *BeagleBoneDriver) clearRegL(address uint, mask uint) {
 // Returns unpacked 32 bit register value starting from address. Integers
 // are little endian on BeagleBone
 func (d *BeagleBoneDriver) getRegL(address uint) (result uint) {
+	
 	result = uint(d.mmap[address])
 	result |= uint(d.mmap[address+1])<<8
 	result |= uint(d.mmap[address+2])<<16
