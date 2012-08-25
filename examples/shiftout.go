@@ -8,11 +8,7 @@ import (
 )
 
 func main() {
-	// Select driver
-	driver := new(hwio.BeagleBoneDriver)
-	hwio.SetDriver(driver)
-
-	// Get the pins we're going to use
+	// Get the pins we're going to use. These are on a beaglebone.
 	dataPin, _ := hwio.GetPin("P8.3")  // connected to pin 14
 	clockPin, _ := hwio.GetPin("P8.4") // connected to pin 11
 	storePin, _ := hwio.GetPin("P8.5") // connected to pin 12

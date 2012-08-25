@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"os/exec"
+	"strings"
 )
 
 type BitShiftOrder byte
@@ -50,9 +52,20 @@ func init() {
 	determineDriver()
 }
 
-// Work out the driver from environment if we can.
+// Work out the driver from environment if we can. If we have any problems,
+// don't generate an error, just return with the driver not set.
+// @todo use reflection to determine all implementors of the driver interface, and
+// @todo   call a method on the interface to self-detect. init and 
+// @todo   constructor of drivers should do no setup in this case, esp of hardware
 func determineDriver() {
-	SetDriver(new(BeagleBoneDriver))
+	uname, e := exec.Command("uname", "-a").Output()
+	if e != nil {
+		return
+	}
+
+	if strings.Contains(string(uname), "beaglebone") {
+		SetDriver(new(BeagleBoneDriver))
+	}
 }
 
 // Check if the driver is assigned. If not, return an error to indicate that,
