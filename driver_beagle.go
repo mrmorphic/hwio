@@ -33,6 +33,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"unsafe"
 )
 
 // Represents info we need to know about a pin on the BeagleBone.
@@ -57,16 +58,22 @@ func (p BeaglePin) isAnalogPin() bool {
 }
 
 const (
+	// Memory map parameters. Note that while the offset is measured in
+	// bytes so we can create the memory map, all offsets are measured
+	// in uint32 offsets, since we access the memory map as 32-bit values only.
 	MMAP_OFFSET = 0x44c00000
 	MMAP_SIZE   = 0x48ffffff - MMAP_OFFSET
 
-	GPIO0 = 0x44e07000 - MMAP_OFFSET
-	GPIO1 = 0x4804c000 - MMAP_OFFSET
-	GPIO2 = 0x481ac000 - MMAP_OFFSET
-	GPIO3 = 0x481ae000 - MMAP_OFFSET
+	// Size of mmap in uint32
+	MMAP_N_UINT32 = MMAP_SIZE >> 2
+
+	GPIO0 = (0x44e07000 - MMAP_OFFSET) >> 2
+	GPIO1 = (0x4804c000 - MMAP_OFFSET) >> 2
+	GPIO2 = (0x481ac000 - MMAP_OFFSET) >> 2
+	GPIO3 = (0x481ae000 - MMAP_OFFSET) >> 2
 
 	//	CM_PER = 0x44e00000-MMAP_OFFSET
-	CM_WKUP = 0x44e00400-MMAP_OFFSET
+	CM_WKUP = (0x44e00400-MMAP_OFFSET) >> 2
 
 	//	CM_PER_EPWMSS0_CLKCTRL = 0xd4+CM_PER
 	//	CM_PER_EPWMSS1_CLKCTRL = 0xcc+CM_PER
@@ -99,25 +106,25 @@ const (
 	// CONF_UART_TX     = CONF_PULLUP
 	// CONF_UART_RX     = CONF_RX_ACTIVE
 
-	GPIO_OE      = 0x134
-	GPIO_DATAIN  = 0x138
-	GPIO_DATAOUT = 0x13c
+	GPIO_OE      = 0x134 >> 2
+	GPIO_DATAIN  = 0x138 >> 2
+	GPIO_DATAOUT = 0x13c >> 2
 
 // GPIO_CLEARDATAOUT = 0x190
 // GPIO_SETDATAOUT   = 0x194
 
 
 	// Start of ADC config
-	ADC_TSC = 0x44e0d000-MMAP_OFFSET
+	ADC_TSC = (0x44e0d000-MMAP_OFFSET) >> 2
 
 	// SYSCONFIG register
-	ADC_SYSCONFIG = ADC_TSC+0x10
+	ADC_SYSCONFIG = ADC_TSC + (0x10 >> 2)
 
 	// @todo find out the meaning of ADC_SOFTRESET. This bit in SYSCONFIG register is marked unused
 	ADC_SOFTRESET = 0x01
 
 	// CTLR register
-	ADC_CTRL = ADC_TSC+0x40
+	ADC_CTRL = ADC_TSC + (0x40 >> 2)
 
 	// Bit in CTRL to disable write protect on step config registers
 	ADC_STEPCONFIG_WRITE_PROTECT_OFF = 0x01<<2
@@ -138,7 +145,7 @@ const (
 // ADC_CLKDIV = ADC_TSC+0x4c  # Write desired value-1
 
 	// STEPENABLE register
-	ADC_STEPENABLE = ADC_TSC+0x54
+	ADC_STEPENABLE = ADC_TSC + (0x54 >> 2)
 
 // ADC_ENABLE = lambda AINx: 0x01<<(ADC[AINx]+1)
 // #----------------------
@@ -146,22 +153,22 @@ const (
 // ADC_IDLECONFIG = ADC_TSC+0x58
 
 	// ADC STEPCONFIG registers
-	ADCSTEPCONFIG1 = ADC_TSC+0x64
-	ADCSTEPDELAY1  = ADC_TSC+0x68
-	ADCSTEPCONFIG2 = ADC_TSC+0x6c
-	ADCSTEPDELAY2  = ADC_TSC+0x70
-	ADCSTEPCONFIG3 = ADC_TSC+0x74
-	ADCSTEPDELAY3  = ADC_TSC+0x78
-	ADCSTEPCONFIG4 = ADC_TSC+0x7c
-	ADCSTEPDELAY4  = ADC_TSC+0x80
-	ADCSTEPCONFIG5 = ADC_TSC+0x84
-	ADCSTEPDELAY5  = ADC_TSC+0x88
-	ADCSTEPCONFIG6 = ADC_TSC+0x8c
-	ADCSTEPDELAY6  = ADC_TSC+0x90
-	ADCSTEPCONFIG7 = ADC_TSC+0x94
-	ADCSTEPDELAY7  = ADC_TSC+0x98
-	ADCSTEPCONFIG8 = ADC_TSC+0x9c
-	ADCSTEPDELAY8  = ADC_TSC+0xa0
+	ADCSTEPCONFIG1 = ADC_TSC + (0x64 >> 2)
+	ADCSTEPDELAY1  = ADC_TSC + (0x68 >> 2)
+	ADCSTEPCONFIG2 = ADC_TSC + (0x6c >> 2)
+	ADCSTEPDELAY2  = ADC_TSC + (0x70 >> 2)
+	ADCSTEPCONFIG3 = ADC_TSC + (0x74 >> 2)
+	ADCSTEPDELAY3  = ADC_TSC + (0x78 >> 2)
+	ADCSTEPCONFIG4 = ADC_TSC + (0x7c >> 2)
+	ADCSTEPDELAY4  = ADC_TSC + (0x80 >> 2)
+	ADCSTEPCONFIG5 = ADC_TSC + (0x84 >> 2)
+	ADCSTEPDELAY5  = ADC_TSC + (0x88 >> 2)
+	ADCSTEPCONFIG6 = ADC_TSC + (0x8c >> 2)
+	ADCSTEPDELAY6  = ADC_TSC + (0x90 >> 2)
+	ADCSTEPCONFIG7 = ADC_TSC + (0x94 >> 2)
+	ADCSTEPDELAY7  = ADC_TSC + (0x98 >> 2)
+	ADCSTEPCONFIG8 = ADC_TSC + (0x9c >> 2)
+	ADCSTEPDELAY8  = ADC_TSC + (0xa0 >> 2)
 // # Only need the first 8 steps - 1 for each AIN pin
 
 // ADC_RESET = 0x00 # Default value of STEPCONFIG
@@ -184,7 +191,7 @@ const (
 // #----------------------
 
 	// ADC FIFO
-	ADC_FIFO0DATA = ADC_TSC+0x100
+	ADC_FIFO0DATA = ADC_TSC + (0x100 >> 2)
 	ADC_FIFO_MASK = 0xfff
 
 // ## ADC pins:
@@ -342,6 +349,9 @@ func init() {
 type BeagleBoneDriver struct {
 	// Mapped memory for directly accessing hardware registers
 	mmap []byte
+
+	// Memory accessable as an array of long.
+	memArray *[MMAP_N_UINT32]uint
 }
 
 func (d *BeagleBoneDriver) Init() error {
@@ -376,6 +386,7 @@ func (d *BeagleBoneDriver) Init() error {
 		return e
 	}
 	d.mmap = mmap
+	d.memArray = (*[MMAP_N_UINT32]uint)(unsafe.Pointer(&mmap[0]))
 
 	d.analogInit()
 
@@ -518,22 +529,22 @@ func (d *BeagleBoneDriver) clearRegL(address uint, mask uint) {
 	d.andRegL(address, ^mask)
 }
 
-// Returns unpacked 32 bit register value starting from address. Integers
-// are little endian on BeagleBone
+// Returns 32 bit value at given address
 func (d *BeagleBoneDriver) getRegL(address uint) (result uint) {
-	
-	result = uint(d.mmap[address])
-	result |= uint(d.mmap[address+1])<<8
-	result |= uint(d.mmap[address+2])<<16
-	result |= uint(d.mmap[address+3])<<24
-	return result
+	return d.memArray[address]
+//	result = uint(d.mmap[address])
+//	result |= uint(d.mmap[address+1])<<8
+//	result |= uint(d.mmap[address+2])<<16
+//	result |= uint(d.mmap[address+3])<<24
+//	return result
 }
 
 func (d *BeagleBoneDriver) setRegL(address uint, value uint) {
-	d.mmap[address] = byte(value & 0xff)
-	d.mmap[address+1] = byte((value >> 8) & 0xff)
-	d.mmap[address+2] = byte((value >> 16) & 0xff)
-	d.mmap[address+3] = byte((value >> 24) & 0xff)
+	d.memArray[address] = value
+//	d.mmap[address] = byte(value & 0xff)
+//	d.mmap[address+1] = byte((value >> 8) & 0xff)
+//	d.mmap[address+2] = byte((value >> 16) & 0xff)
+//	d.mmap[address+3] = byte((value >> 24) & 0xff)
 }
 
 func (d *BeagleBoneDriver) PinMap() (pinMap HardwarePinMap) {
