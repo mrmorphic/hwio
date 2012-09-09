@@ -63,8 +63,10 @@ func determineDriver() {
 		return
 	}
 
-	if strings.Contains(string(uname), "beaglebone") {
+	s := string(uname)
+	if strings.Contains(s, "beaglebone") {
 		SetDriver(new(BeagleBoneDriver))
+	} else if strings.Contains(s, "raspberrypi") && strings.Contains(s, "adafruit") {
 	}
 }
 
