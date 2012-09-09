@@ -6,8 +6,7 @@ hwio is a library for interfacing with hardware I/O. It is loosely modelled on
 the Arduino programming style, but deviating where that doesn't make sense in
 go. It makes use of a thin hardware abstraction via an interface so a program
 written against the library for say a beaglebone could be easily compiled to run
-on a raspberry pi (big caveat: someone needs to write that driver ;-), maybe
-only changing logical pin numbers.
+on a raspberry pi, maybe only changing logical pin numbers.
 
 Hardware drivers implement the interface that allows different devices to
 implement the I/O handling as appropriate. This allows for drivers that use
@@ -96,6 +95,7 @@ _I'll do this when it is in a more stable state._
 
 ## Things to be done
 
+ *	Better performance on raw GPIO
  *	PWM output support (BeagleBone)
  *	Analog input (BeagleBone)
  *	Interupts (lib and BeagleBone)

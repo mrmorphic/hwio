@@ -20,7 +20,6 @@ package hwio
 // - ANY CHANGES YOU MAKE TO THIS MAY FRY YOUR BOARD
 // Don't say you weren't warned.
 
-// @todo: Use set and clear register locations instead for digital write, instead of bit manipulation
 // @todo: Analog pin support
 // @todo: Timers
 // @todo: Interupts
@@ -33,6 +32,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"unsafe"
 )
 
 // Represents info we need to know about a pin on the BeagleBone.
@@ -45,6 +45,8 @@ type BeaglePin struct {
 	bit       uint   // A single bit in the position of the I/O value on the port
 	mode0Name string // mode 0 signal name, used by the muxer
 	adcEnable uint   // bit mask for analog pin control
+	setAddr   uint   // derived, port+set reg offset
+	clrAddr   uint   // derived, port+clr reg offset
 }
 
 func (p BeaglePin) GetName() string {
@@ -56,17 +58,27 @@ func (p BeaglePin) isAnalogPin() bool {
 	return p.adcEnable != 0
 }
 
+func makeBeaglePin(hwPin string, profile []Capability, gpioName string, port uint, bit uint, mode0Name string, adcEnable uint) (* BeaglePin) {
+	return &BeaglePin{hwPin, profile, gpioName, port, bit, mode0Name, adcEnable, port + GPIO_SETDATAOUT, port + GPIO_CLEARDATAOUT}
+}
+
 const (
+	// Memory map parameters. Note that while the offset is measured in
+	// bytes so we can create the memory map, all offsets are measured
+	// in uint32 offsets, since we access the memory map as 32-bit values only.
 	MMAP_OFFSET = 0x44c00000
 	MMAP_SIZE   = 0x48ffffff - MMAP_OFFSET
 
-	GPIO0 = 0x44e07000 - MMAP_OFFSET
-	GPIO1 = 0x4804c000 - MMAP_OFFSET
-	GPIO2 = 0x481ac000 - MMAP_OFFSET
-	GPIO3 = 0x481ae000 - MMAP_OFFSET
+	// Size of mmap in uint32
+	MMAP_N_UINT32 = MMAP_SIZE >> 2
+
+	GPIO0 = (0x44e07000 - MMAP_OFFSET) >> 2
+	GPIO1 = (0x4804c000 - MMAP_OFFSET) >> 2
+	GPIO2 = (0x481ac000 - MMAP_OFFSET) >> 2
+	GPIO3 = (0x481ae000 - MMAP_OFFSET) >> 2
 
 	//	CM_PER = 0x44e00000-MMAP_OFFSET
-	CM_WKUP = 0x44e00400-MMAP_OFFSET
+	CM_WKUP = (0x44e00400-MMAP_OFFSET) >> 2
 
 	//	CM_PER_EPWMSS0_CLKCTRL = 0xd4+CM_PER
 	//	CM_PER_EPWMSS1_CLKCTRL = 0xcc+CM_PER
@@ -99,25 +111,27 @@ const (
 	// CONF_UART_TX     = CONF_PULLUP
 	// CONF_UART_RX     = CONF_RX_ACTIVE
 
-	GPIO_OE      = 0x134
-	GPIO_DATAIN  = 0x138
-	GPIO_DATAOUT = 0x13c
+	GPIO_OE      = 0x134 >> 2
+	GPIO_DATAIN  = 0x138 >> 2
+	GPIO_DATAOUT = 0x13c >> 2
 
-// GPIO_CLEARDATAOUT = 0x190
-// GPIO_SETDATAOUT   = 0x194
+	// When setting or clearing output bits, these registers provide a faster way to do it, without
+	// requiring bit manipulation of the output register
+	GPIO_CLEARDATAOUT = 0x190 >> 2
+	GPIO_SETDATAOUT   = 0x194 >> 2
 
 
 	// Start of ADC config
-	ADC_TSC = 0x44e0d000-MMAP_OFFSET
+	ADC_TSC = (0x44e0d000-MMAP_OFFSET) >> 2
 
 	// SYSCONFIG register
-	ADC_SYSCONFIG = ADC_TSC+0x10
+	ADC_SYSCONFIG = ADC_TSC + (0x10 >> 2)
 
 	// @todo find out the meaning of ADC_SOFTRESET. This bit in SYSCONFIG register is marked unused
 	ADC_SOFTRESET = 0x01
 
 	// CTLR register
-	ADC_CTRL = ADC_TSC+0x40
+	ADC_CTRL = ADC_TSC + (0x40 >> 2)
 
 	// Bit in CTRL to disable write protect on step config registers
 	ADC_STEPCONFIG_WRITE_PROTECT_OFF = 0x01<<2
@@ -138,7 +152,7 @@ const (
 // ADC_CLKDIV = ADC_TSC+0x4c  # Write desired value-1
 
 	// STEPENABLE register
-	ADC_STEPENABLE = ADC_TSC+0x54
+	ADC_STEPENABLE = ADC_TSC + (0x54 >> 2)
 
 // ADC_ENABLE = lambda AINx: 0x01<<(ADC[AINx]+1)
 // #----------------------
@@ -146,22 +160,22 @@ const (
 // ADC_IDLECONFIG = ADC_TSC+0x58
 
 	// ADC STEPCONFIG registers
-	ADCSTEPCONFIG1 = ADC_TSC+0x64
-	ADCSTEPDELAY1  = ADC_TSC+0x68
-	ADCSTEPCONFIG2 = ADC_TSC+0x6c
-	ADCSTEPDELAY2  = ADC_TSC+0x70
-	ADCSTEPCONFIG3 = ADC_TSC+0x74
-	ADCSTEPDELAY3  = ADC_TSC+0x78
-	ADCSTEPCONFIG4 = ADC_TSC+0x7c
-	ADCSTEPDELAY4  = ADC_TSC+0x80
-	ADCSTEPCONFIG5 = ADC_TSC+0x84
-	ADCSTEPDELAY5  = ADC_TSC+0x88
-	ADCSTEPCONFIG6 = ADC_TSC+0x8c
-	ADCSTEPDELAY6  = ADC_TSC+0x90
-	ADCSTEPCONFIG7 = ADC_TSC+0x94
-	ADCSTEPDELAY7  = ADC_TSC+0x98
-	ADCSTEPCONFIG8 = ADC_TSC+0x9c
-	ADCSTEPDELAY8  = ADC_TSC+0xa0
+	ADCSTEPCONFIG1 = ADC_TSC + (0x64 >> 2)
+	ADCSTEPDELAY1  = ADC_TSC + (0x68 >> 2)
+	ADCSTEPCONFIG2 = ADC_TSC + (0x6c >> 2)
+	ADCSTEPDELAY2  = ADC_TSC + (0x70 >> 2)
+	ADCSTEPCONFIG3 = ADC_TSC + (0x74 >> 2)
+	ADCSTEPDELAY3  = ADC_TSC + (0x78 >> 2)
+	ADCSTEPCONFIG4 = ADC_TSC + (0x7c >> 2)
+	ADCSTEPDELAY4  = ADC_TSC + (0x80 >> 2)
+	ADCSTEPCONFIG5 = ADC_TSC + (0x84 >> 2)
+	ADCSTEPDELAY5  = ADC_TSC + (0x88 >> 2)
+	ADCSTEPCONFIG6 = ADC_TSC + (0x8c >> 2)
+	ADCSTEPDELAY6  = ADC_TSC + (0x90 >> 2)
+	ADCSTEPCONFIG7 = ADC_TSC + (0x94 >> 2)
+	ADCSTEPDELAY7  = ADC_TSC + (0x98 >> 2)
+	ADCSTEPCONFIG8 = ADC_TSC + (0x9c >> 2)
+	ADCSTEPDELAY8  = ADC_TSC + (0xa0 >> 2)
 // # Only need the first 8 steps - 1 for each AIN pin
 
 // ADC_RESET = 0x00 # Default value of STEPCONFIG
@@ -184,7 +198,7 @@ const (
 // #----------------------
 
 	// ADC FIFO
-	ADC_FIFO0DATA = ADC_TSC+0x100
+	ADC_FIFO0DATA = ADC_TSC + (0x100 >> 2)
 	ADC_FIFO_MASK = 0xfff
 
 // ## ADC pins:
@@ -253,88 +267,87 @@ func init() {
 
 	p := []*BeaglePin{
 		// P8
-		&BeaglePin{"P8.3", gpioProfile, "GPIO1_6", GPIO1, 1 << 6, "gpmc_ad6", 0},
-		&BeaglePin{"P8.4", gpioProfile, "GPIO1_7", GPIO1, 1 << 7, "gpmc_ad7", 0},
-		&BeaglePin{"P8.5", gpioProfile, "GPIO1_2", GPIO1, 1 << 2, "gpmc_ad2", 0},
-		&BeaglePin{"P8.6", gpioProfile, "GPIO1_3", GPIO1, 1 << 3, "gpmc_ad3", 0},
-		&BeaglePin{"P8.7", gpioProfile, "GPIO2_2", GPIO2, 1 << 2, "gpmc_advn_ale", 0},
-		&BeaglePin{"P8.8", gpioProfile, "GPIO2_3", GPIO2, 1 << 3, "gpmc_oen_ren", 0},
-		&BeaglePin{"P8.9", gpioProfile, "GPIO2_5", GPIO2, 1 << 5, "gpmc_ben0_cle", 0},
-		&BeaglePin{"P8.10", gpioProfile, "GPIO2_4", GPIO2, 1 << 4, "gpmc_wen", 0},
-		&BeaglePin{"P8.11", gpioProfile, "GPIO1_13", GPIO1, 1 << 13, "gpmc_ad13", 0},
-		&BeaglePin{"P8.12", gpioProfile, "GPIO1_12", GPIO1, 1 << 12, "gpmc_ad12", 0},
-		&BeaglePin{"P8.13", gpioProfile, "GPIO0_23", GPIO0, 1 << 23, "gpmc_ad9", 0},
-		&BeaglePin{"P8.14", gpioProfile, "GPIO0_26", GPIO0, 1 << 26, "gpmc_ad10", 0},
-		&BeaglePin{"P8.15", gpioProfile, "GPIO1_15", GPIO1, 1 << 15, "gpmc_ad15", 0},
-		&BeaglePin{"P8.16", gpioProfile, "GPIO1_14", GPIO1, 1 << 14, "gpmc_ad14", 0},
-		&BeaglePin{"P8.17", gpioProfile, "GPIO0_27", GPIO0, 1 << 27, "gpmc_ad11", 0},
-		&BeaglePin{"P8.18", gpioProfile, "GPIO2_1", GPIO2, 1 << 1, "gpmc_clk", 0},
-		&BeaglePin{"P8.19", gpioProfile, "GPIO0_22", GPIO0, 1 << 22, "gpmc_ad8", 0},
-		&BeaglePin{"P8.20", gpioProfile, "GPIO1_31", GPIO1, 1 << 31, "gpmc_csn2", 0},
-		&BeaglePin{"P8.21", gpioProfile, "GPIO1_30", GPIO1, 1 << 30, "gpmc_csn1", 0},
-		&BeaglePin{"P8.22", gpioProfile, "GPIO1_5", GPIO1, 1 << 5, "gpmc_ad5", 0},
-		&BeaglePin{"P8.23", gpioProfile, "GPIO1_4", GPIO1, 1 << 4, "gpmc_ad4", 0},
-		&BeaglePin{"P8.24", gpioProfile, "GPIO1_1", GPIO1, 1 << 1, "gpmc_ad1", 0},
-		&BeaglePin{"P8.25", gpioProfile, "GPIO1_0", GPIO1, 1, "gpmc_ad0", 0},
-		&BeaglePin{"P8.26", gpioProfile, "GPIO1_29", GPIO1, 1 << 29, "gpmc_csn0", 0},
-		&BeaglePin{"P8.27", gpioProfile, "GPIO2_22", GPIO2, 1 << 22, "lcd_vsync", 0},
-		&BeaglePin{"P8.28", gpioProfile, "GPIO2_24", GPIO2, 1 << 24, "lcd_pclk", 0},
-		&BeaglePin{"P8.29", gpioProfile, "GPIO2_23", GPIO2, 1 << 23, "lcd_hsync", 0},
-		&BeaglePin{"P8.30", gpioProfile, "GPIO2_25", GPIO2, 1 << 25, "lcd_ac_bias_en", 0},
-		&BeaglePin{"P8.31", gpioProfile, "GPIO0_10", GPIO0, 1 << 10, "lcd_data14", 0},
-		&BeaglePin{"P8.32", gpioProfile, "GPIO0_11", GPIO0, 1 << 11, "lcd_data15", 0},
-		&BeaglePin{"P8.33", gpioProfile, "GPIO0_9", GPIO0, 1 << 9, "lcd_data13", 0},
-		&BeaglePin{"P8.34", gpioProfile, "GPIO2_17", GPIO2, 1 << 17, "lcd_data11", 0},
-		&BeaglePin{"P8.35", gpioProfile, "GPIO0_8", GPIO0, 1 << 8, "lcd_data12", 0},
-		&BeaglePin{"P8.36", gpioProfile, "GPIO2_16", GPIO2, 1 << 16, "lcd_data10", 0},
-		&BeaglePin{"P8.37", gpioProfile, "GPIO2_14", GPIO2, 1 << 14, "lcd_data8", 0},
-		&BeaglePin{"P8.38", gpioProfile, "GPIO2_15", GPIO2, 1 << 15, "lcd_data9", 0},
-		&BeaglePin{"P8.39", gpioProfile, "GPIO2_12", GPIO2, 1 << 12, "lcd_data6", 0},
-		&BeaglePin{"P8.40", gpioProfile, "GPIO2_13", GPIO2, 1 << 13, "lcd_data7", 0},
-		&BeaglePin{"P8.41", gpioProfile, "GPIO2_10", GPIO2, 1 << 10, "lcd_data4", 0},
-		&BeaglePin{"P8.42", gpioProfile, "GPIO2_11", GPIO2, 1 << 11, "lcd_data5", 0},
-		&BeaglePin{"P8.43", gpioProfile, "GPIO2_8", GPIO2, 1 << 8, "lcd_data2", 0},
-		&BeaglePin{"P8.44", gpioProfile, "GPIO2_9", GPIO2, 1 << 9, "lcd_data3", 0},
-		&BeaglePin{"P8.45", gpioProfile, "GPIO2_6", GPIO2, 1 << 6, "lcd_data0", 0},
-		&BeaglePin{"P8.46", gpioProfile, "GPIO2_7", GPIO2, 1 << 7, "lcd_data1", 0},
+		makeBeaglePin("P8.3", gpioProfile, "GPIO1_6", GPIO1, 1 << 6, "gpmc_ad6", 0),
+		makeBeaglePin("P8.4", gpioProfile, "GPIO1_7", GPIO1, 1 << 7, "gpmc_ad7", 0),
+		makeBeaglePin("P8.5", gpioProfile, "GPIO1_2", GPIO1, 1 << 2, "gpmc_ad2", 0),
+		makeBeaglePin("P8.6", gpioProfile, "GPIO1_3", GPIO1, 1 << 3, "gpmc_ad3", 0),
+		makeBeaglePin("P8.7", gpioProfile, "GPIO2_2", GPIO2, 1 << 2, "gpmc_advn_ale", 0),
+		makeBeaglePin("P8.8", gpioProfile, "GPIO2_3", GPIO2, 1 << 3, "gpmc_oen_ren", 0),
+		makeBeaglePin("P8.9", gpioProfile, "GPIO2_5", GPIO2, 1 << 5, "gpmc_ben0_cle", 0),
+		makeBeaglePin("P8.10", gpioProfile, "GPIO2_4", GPIO2, 1 << 4, "gpmc_wen", 0),
+		makeBeaglePin("P8.11", gpioProfile, "GPIO1_13", GPIO1, 1 << 13, "gpmc_ad13", 0),
+		makeBeaglePin("P8.12", gpioProfile, "GPIO1_12", GPIO1, 1 << 12, "gpmc_ad12", 0),
+		makeBeaglePin("P8.13", gpioProfile, "GPIO0_23", GPIO0, 1 << 23, "gpmc_ad9", 0),
+		makeBeaglePin("P8.14", gpioProfile, "GPIO0_26", GPIO0, 1 << 26, "gpmc_ad10", 0),
+		makeBeaglePin("P8.15", gpioProfile, "GPIO1_15", GPIO1, 1 << 15, "gpmc_ad15", 0),
+		makeBeaglePin("P8.16", gpioProfile, "GPIO1_14", GPIO1, 1 << 14, "gpmc_ad14", 0),
+		makeBeaglePin("P8.17", gpioProfile, "GPIO0_27", GPIO0, 1 << 27, "gpmc_ad11", 0),
+		makeBeaglePin("P8.18", gpioProfile, "GPIO2_1", GPIO2, 1 << 1, "gpmc_clk", 0),
+		makeBeaglePin("P8.19", gpioProfile, "GPIO0_22", GPIO0, 1 << 22, "gpmc_ad8", 0),
+		makeBeaglePin("P8.20", gpioProfile, "GPIO1_31", GPIO1, 1 << 31, "gpmc_csn2", 0),
+		makeBeaglePin("P8.21", gpioProfile, "GPIO1_30", GPIO1, 1 << 30, "gpmc_csn1", 0),
+		makeBeaglePin("P8.22", gpioProfile, "GPIO1_5", GPIO1, 1 << 5, "gpmc_ad5", 0),
+		makeBeaglePin("P8.23", gpioProfile, "GPIO1_4", GPIO1, 1 << 4, "gpmc_ad4", 0),
+		makeBeaglePin("P8.24", gpioProfile, "GPIO1_1", GPIO1, 1 << 1, "gpmc_ad1", 0),
+		makeBeaglePin("P8.25", gpioProfile, "GPIO1_0", GPIO1, 1, "gpmc_ad0", 0),
+		makeBeaglePin("P8.26", gpioProfile, "GPIO1_29", GPIO1, 1 << 29, "gpmc_csn0", 0),
+		makeBeaglePin("P8.27", gpioProfile, "GPIO2_22", GPIO2, 1 << 22, "lcd_vsync", 0),
+		makeBeaglePin("P8.28", gpioProfile, "GPIO2_24", GPIO2, 1 << 24, "lcd_pclk", 0),
+		makeBeaglePin("P8.29", gpioProfile, "GPIO2_23", GPIO2, 1 << 23, "lcd_hsync", 0),
+		makeBeaglePin("P8.30", gpioProfile, "GPIO2_25", GPIO2, 1 << 25, "lcd_ac_bias_en", 0),
+		makeBeaglePin("P8.31", gpioProfile, "GPIO0_10", GPIO0, 1 << 10, "lcd_data14", 0),
+		makeBeaglePin("P8.32", gpioProfile, "GPIO0_11", GPIO0, 1 << 11, "lcd_data15", 0),
+		makeBeaglePin("P8.33", gpioProfile, "GPIO0_9", GPIO0, 1 << 9, "lcd_data13", 0),
+		makeBeaglePin("P8.34", gpioProfile, "GPIO2_17", GPIO2, 1 << 17, "lcd_data11", 0),
+		makeBeaglePin("P8.35", gpioProfile, "GPIO0_8", GPIO0, 1 << 8, "lcd_data12", 0),
+		makeBeaglePin("P8.36", gpioProfile, "GPIO2_16", GPIO2, 1 << 16, "lcd_data10", 0),
+		makeBeaglePin("P8.37", gpioProfile, "GPIO2_14", GPIO2, 1 << 14, "lcd_data8", 0),
+		makeBeaglePin("P8.38", gpioProfile, "GPIO2_15", GPIO2, 1 << 15, "lcd_data9", 0),
+		makeBeaglePin("P8.40", gpioProfile, "GPIO2_13", GPIO2, 1 << 13, "lcd_data7", 0),
+		makeBeaglePin("P8.41", gpioProfile, "GPIO2_10", GPIO2, 1 << 10, "lcd_data4", 0),
+		makeBeaglePin("P8.42", gpioProfile, "GPIO2_11", GPIO2, 1 << 11, "lcd_data5", 0),
+		makeBeaglePin("P8.43", gpioProfile, "GPIO2_8", GPIO2, 1 << 8, "lcd_data2", 0),
+		makeBeaglePin("P8.44", gpioProfile, "GPIO2_9", GPIO2, 1 << 9, "lcd_data3", 0),
+		makeBeaglePin("P8.45", gpioProfile, "GPIO2_6", GPIO2, 1 << 6, "lcd_data0", 0),
+		makeBeaglePin("P8.46", gpioProfile, "GPIO2_7", GPIO2, 1 << 7, "lcd_data1", 0),
 
 		// P9
-		&BeaglePin{"P9.11", gpioProfile, "GPIO0_30", GPIO0, 1 << 30, "gpmc_wait0", 0},
-		&BeaglePin{"P9.12", gpioProfile, "GPIO1_28", GPIO1, 1 << 28, "gpmc_ben1", 0},
-		&BeaglePin{"P9.13", gpioProfile, "GPIO0_31", GPIO0, 1 << 31, "gpmc_wpn", 0},
-		&BeaglePin{"P9.14", gpioProfile, "GPIO1_18", GPIO1, 1 << 18, "gpmc_a2", 0},
-		&BeaglePin{"P9.15", gpioProfile, "GPIO1_16", GPIO1, 1 << 16, "gpmc_a0", 0},
-		&BeaglePin{"P9.16", gpioProfile, "GPIO1_19", GPIO1, 1 << 19, "gpmc_a3", 0},
-		&BeaglePin{"P9.17", gpioProfile, "GPIO0_5", GPIO0, 1 << 5, "spi0_cs0", 0},
-		&BeaglePin{"P9.18", gpioProfile, "GPIO0_4", GPIO0, 1 << 4, "spi0_d1", 0},
-		&BeaglePin{"P9.19", gpioProfile, "GPIO0_13", GPIO0, 1 << 13, "uart1_rtsn", 0},
-		&BeaglePin{"P9.20", gpioProfile, "GPIO0_12", GPIO0, 1 << 12, "uart1_ctsn", 0},
-		&BeaglePin{"P9.21", gpioProfile, "GPIO0_3", GPIO0, 1 << 3, "spi0_d0", 0},
-		&BeaglePin{"P9.22", gpioProfile, "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk", 0},
-		&BeaglePin{"P9.23", gpioProfile, "GPIO1_17", GPIO1, 1 << 17, "gpmc_a1", 0},
-		&BeaglePin{"P9.24", gpioProfile, "GPIO0_15", GPIO0, 1 << 15, "uart1_txd", 0},
-		&BeaglePin{"P9.25", gpioProfile, "GPIO3_21", GPIO3, 1 << 21, "mcasp0_ahclkx", 0},
-		&BeaglePin{"P9.26", gpioProfile, "GPIO0_14", GPIO0, 1 << 14, "uart1_rxd", 0},
-		&BeaglePin{"P9.27", gpioProfile, "GPIO3_19", GPIO3, 1 << 19, "mcasp0_fsr", 0},
-		&BeaglePin{"P9.28", gpioProfile, "GPIO3_17", GPIO3, 1 << 17, "mcasp0_ahclkr", 0},
-		&BeaglePin{"P9.29", gpioProfile, "GPIO3_15", GPIO3, 1 << 15, "mcasp0_fsx", 0},
-		&BeaglePin{"P9.30", gpioProfile, "GPIO3_16", GPIO3, 1 << 16, "mcasp0_axr0", 0},
-		&BeaglePin{"P9.31", gpioProfile, "GPIO3_14", GPIO3, 1 << 14, "mcasp0_aclkx", 0},
-		&BeaglePin{"P9.33", analogInProfile, "AIN4", 0, 0, "ain4", 1<<5},
-		&BeaglePin{"P9.35", analogInProfile, "AIN6", 0, 0, "ain6", 1<<7},
-		&BeaglePin{"P9.36", analogInProfile, "AIN5", 0, 0, "ain5", 1<<6},
-		&BeaglePin{"P9.37", analogInProfile, "AIN2", 0, 0, "ain2", 1<<3},
-		&BeaglePin{"P9.38", analogInProfile, "AIN3", 0, 0, "ain3", 1<<4},
-		&BeaglePin{"P9.39", analogInProfile, "AIN0", 0, 0, "ain0", 1<<1},
-		&BeaglePin{"P9.40", analogInProfile, "AIN1", 0, 0, "ain1", 1<<2},
-		&BeaglePin{"P9.41", gpioProfile, "GPIO0_20", GPIO0, 1 << 20, "xdma_event_intr1", 0},
-		&BeaglePin{"P9.42", gpioProfile, "GPIO0_7", GPIO0, 1 << 7, "ecap0_in_pwm0_out", 0},
+		makeBeaglePin("P9.11", gpioProfile, "GPIO0_30", GPIO0, 1 << 30, "gpmc_wait0", 0),
+		makeBeaglePin("P9.12", gpioProfile, "GPIO1_28", GPIO1, 1 << 28, "gpmc_ben1", 0),
+		makeBeaglePin("P9.13", gpioProfile, "GPIO0_31", GPIO0, 1 << 31, "gpmc_wpn", 0),
+		makeBeaglePin("P9.14", gpioProfile, "GPIO1_18", GPIO1, 1 << 18, "gpmc_a2", 0),
+		makeBeaglePin("P9.15", gpioProfile, "GPIO1_16", GPIO1, 1 << 16, "gpmc_a0", 0),
+		makeBeaglePin("P9.16", gpioProfile, "GPIO1_19", GPIO1, 1 << 19, "gpmc_a3", 0),
+		makeBeaglePin("P9.17", gpioProfile, "GPIO0_5", GPIO0, 1 << 5, "spi0_cs0", 0),
+		makeBeaglePin("P9.18", gpioProfile, "GPIO0_4", GPIO0, 1 << 4, "spi0_d1", 0),
+		makeBeaglePin("P9.19", gpioProfile, "GPIO0_13", GPIO0, 1 << 13, "uart1_rtsn", 0),
+		makeBeaglePin("P9.20", gpioProfile, "GPIO0_12", GPIO0, 1 << 12, "uart1_ctsn", 0),
+		makeBeaglePin("P9.21", gpioProfile, "GPIO0_3", GPIO0, 1 << 3, "spi0_d0", 0),
+		makeBeaglePin("P9.22", gpioProfile, "GPIO0_2", GPIO0, 1 << 2, "spi0_sclk", 0),
+		makeBeaglePin("P9.23", gpioProfile, "GPIO1_17", GPIO1, 1 << 17, "gpmc_a1", 0),
+		makeBeaglePin("P9.24", gpioProfile, "GPIO0_15", GPIO0, 1 << 15, "uart1_txd", 0),
+		makeBeaglePin("P9.25", gpioProfile, "GPIO3_21", GPIO3, 1 << 21, "mcasp0_ahclkx", 0),
+		makeBeaglePin("P9.26", gpioProfile, "GPIO0_14", GPIO0, 1 << 14, "uart1_rxd", 0),
+		makeBeaglePin("P9.27", gpioProfile, "GPIO3_19", GPIO3, 1 << 19, "mcasp0_fsr", 0),
+		makeBeaglePin("P9.28", gpioProfile, "GPIO3_17", GPIO3, 1 << 17, "mcasp0_ahclkr", 0),
+		makeBeaglePin("P9.29", gpioProfile, "GPIO3_15", GPIO3, 1 << 15, "mcasp0_fsx", 0),
+		makeBeaglePin("P9.30", gpioProfile, "GPIO3_16", GPIO3, 1 << 16, "mcasp0_axr0", 0),
+		makeBeaglePin("P9.31", gpioProfile, "GPIO3_14", GPIO3, 1 << 14, "mcasp0_aclkx", 0),
+		makeBeaglePin("P9.33", analogInProfile, "AIN4", 0, 0, "ain4", 1<<5),
+		makeBeaglePin("P9.35", analogInProfile, "AIN6", 0, 0, "ain6", 1<<7),
+		makeBeaglePin("P9.36", analogInProfile, "AIN5", 0, 0, "ain5", 1<<6),
+		makeBeaglePin("P9.37", analogInProfile, "AIN2", 0, 0, "ain2", 1<<3),
+		makeBeaglePin("P9.38", analogInProfile, "AIN3", 0, 0, "ain3", 1<<4),
+		makeBeaglePin("P9.39", analogInProfile, "AIN0", 0, 0, "ain0", 1<<1),
+		makeBeaglePin("P9.40", analogInProfile, "AIN1", 0, 0, "ain1", 1<<2),
+		makeBeaglePin("P9.41", gpioProfile, "GPIO0_20", GPIO0, 1 << 20, "xdma_event_intr1", 0),
+		makeBeaglePin("P9.42", gpioProfile, "GPIO0_7", GPIO0, 1 << 7, "ecap0_in_pwm0_out", 0),
 
 		// USR LEDs
-		&BeaglePin{"USR0", usrLedProfile, "USR0", GPIO1, 1 << 21, "gpmc_a5", 0},
-		&BeaglePin{"USR1", usrLedProfile, "USR1", GPIO1, 1 << 22, "gpmc_a6", 0},
-		&BeaglePin{"USR2", usrLedProfile, "USR2", GPIO1, 1 << 23, "gpmc_a7", 0},
-		&BeaglePin{"USR3", usrLedProfile, "USR3", GPIO1, 1 << 24, "gpmc_a8", 0},
+		makeBeaglePin("USR0", usrLedProfile, "USR0", GPIO1, 1 << 21, "gpmc_a5", 0),
+		makeBeaglePin("USR1", usrLedProfile, "USR1", GPIO1, 1 << 22, "gpmc_a6", 0),
+		makeBeaglePin("USR2", usrLedProfile, "USR2", GPIO1, 1 << 23, "gpmc_a7", 0),
+		makeBeaglePin("USR3", usrLedProfile, "USR3", GPIO1, 1 << 24, "gpmc_a8", 0),
 	}
 	beaglePins = p
 }
@@ -342,9 +355,33 @@ func init() {
 type BeagleBoneDriver struct {
 	// Mapped memory for directly accessing hardware registers
 	mmap []byte
+
+	// Memory accessable as an array of long.
+	memArray *[MMAP_N_UINT32]uint
 }
 
 func (d *BeagleBoneDriver) Init() error {
+	// The following snippet is from:
+	// https://groups.google.com/forum/?fromgroups=#!topic/golang-nuts/1omyttb2Hlo
+	// This creates a memory map of longs. Given that all our access is 32-bit, this
+	// could speed up access significantly. Need to adjust getRegL to use this and divide
+	// the address offset by 4.
+	//	if F==nil {panic(err)} 
+	//	fd := F.Fd(); 
+	//	addr, _, errno := syscall.Syscall6(syscall.SYS_MMAP, 
+	//							0, uintptr(HandRankSz)*4, 
+	//							1 /* syscall.PROT_READ */, 
+	//							0, uintptr(fd), 0); 
+	//	if errno != 0 { 
+	//		log.Exitf("mmap display: %s", os.Errno(errno)) 
+	//	} 
+	//	HandRanks = (*[HandRankSz]int32)(unsafe.Pointer(addr)); 
+	//	// mmap without touching the pages would be cheating... 
+	//	var sum int32; 
+	//	for hr:=range(HandRanks) { 
+	//		sum ^= HandRanks[hr]; 
+	//	} 
+    
 	// Set up the memory mapped file giving us access to hardware registers
 	file, e := os.OpenFile("/dev/mem", os.O_RDWR|os.O_APPEND, 0)
 	if e != nil {
@@ -355,12 +392,11 @@ func (d *BeagleBoneDriver) Init() error {
 		return e
 	}
 	d.mmap = mmap
+	d.memArray = (*[MMAP_N_UINT32]uint)(unsafe.Pointer(&mmap[0]))
 
 	d.analogInit()
 
 	return nil
-	//	with open(MEM_FILE, "r+b") as f:
-	//  __mmap = mmap(f.fileno(), MMAP_SIZE, offset=MMAP_OFFSET)
 }
 
 func (d *BeagleBoneDriver) Close() {
@@ -427,9 +463,9 @@ func (d *BeagleBoneDriver) pinMux(mux string, mode uint) error {
 func (d *BeagleBoneDriver) DigitalWrite(pin Pin, value int) (e error) {
 	p := beaglePins[pin]
 	if value == 0 {
-		d.clearRegL(p.port+GPIO_DATAOUT, p.bit)
+		d.memArray[p.clrAddr] = p.bit
 	} else {
-		d.orRegL(p.port+GPIO_DATAOUT, p.bit)
+		d.memArray[p.setAddr] = p.bit
 	}
 	return nil
 }
@@ -497,21 +533,13 @@ func (d *BeagleBoneDriver) clearRegL(address uint, mask uint) {
 	d.andRegL(address, ^mask)
 }
 
-// Returns unpacked 32 bit register value starting from address. Integers
-// are little endian on BeagleBone
+// Returns 32 bit value at given address
 func (d *BeagleBoneDriver) getRegL(address uint) (result uint) {
-	result = uint(d.mmap[address])
-	result |= uint(d.mmap[address+1])<<8
-	result |= uint(d.mmap[address+2])<<16
-	result |= uint(d.mmap[address+3])<<24
-	return result
+	return d.memArray[address]
 }
 
 func (d *BeagleBoneDriver) setRegL(address uint, value uint) {
-	d.mmap[address] = byte(value & 0xff)
-	d.mmap[address+1] = byte((value >> 8) & 0xff)
-	d.mmap[address+2] = byte((value >> 16) & 0xff)
-	d.mmap[address+3] = byte((value >> 24) & 0xff)
+	d.memArray[address] = value
 }
 
 func (d *BeagleBoneDriver) PinMap() (pinMap HardwarePinMap) {
