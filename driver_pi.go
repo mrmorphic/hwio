@@ -30,27 +30,47 @@ type RaspberryPiPin struct {
 	hwPin     string // This intended for the P8.16 format name (currently unused)
 	profile   []Capability
 	gpioName  string // This is used for a human readable name
+	funcReg   uint
+    funcShift uint
 	bit       uint   // A single bit in the position of the I/O value on the port
-	mode0Name string // mode 0 signal name, used by the muxer
 }
 
 func (p RaspberryPiPin) GetName() string {
 	return p.gpioName
 }
 
+func makePiPin(hwPin string, profile []Capability, gpioName string, funcReg uint, funcShift uint, bit uint) (* RaspberryPiPin) {
+	return &RaspberryPiPin{hwPin, profile, gpioName, funcReg, funcShift, bit}
+}
+
 var piPins []*RaspberryPiPin
 var piGpioProfile []Capability
 var piUnusedProfile []Capability
 
-const
+const (
 	PI_BCM2708_PERI_BASE = 0x20000000
-	PI_GPIO_BASE		(PI_BCM2708_PERI_BASE + 0x200000)
-	// CLOCK_BASE		(BCM2708_PERI_BASE + 0x101000)
-	// GPIO_PWM		(BCM2708_PERI_BASE + 0x20C000)
+	PI_GPIO_BASE = PI_BCM2708_PERI_BASE + 0x200000
+	// CLOCK_BASE = BCM2708_PERI_BASE + 0x101000
+	// GPIO_PWM = BCM2708_PERI_BASE + 0x20C000
 
-	PI_PAGE_SIZE = (4*1024)
-	PI_BLOCK_SIZE = (4*1024)
+	PI_PAGE_SIZE = 4*1024
+	PI_BLOCK_SIZE = 4*1024
 
+	// number of 32-bit values in the gpio mmap
+	PI_GPIO_MMAP_N_UINT32 = 1024
+
+	PI_GPIO_PORT0_SET_REG = 7
+	PI_GPIO_PORT0_CLEAR_REG = 10
+
+	PI_GPIO_PORT0_INPUT_LEVEL = 13
+
+	PI_FUNC_REG_0 = 0
+	PI_FUNC_REG_1 = 1
+	PI_FUNC_REG_2 = 2
+
+	PI_PUD = 37
+	PI_PUD_CLK_REG = 38
+)
 
 func init() {
 	piGpioProfile = []Capability{
@@ -65,33 +85,33 @@ func init() {
 	// The pins are numbered as they are on the connector. This means introducing
 	// artificial pins for things like power, to keep the numbering.
 	p := []*RaspberryPiPin{
-		&RaspberryPiPin{"NULL", piUnusedProfile, "", 0, ""}, // 0 - spacer
-		&RaspberryPiPin{"3.3V", piUnusedProfile, "", 0, "gpmc_ad6"},
-		&RaspberryPiPin{"5V", piUnusedProfile, "", 0, "gpmc_ad7"},
-		&RaspberryPiPin{"SDA", piUnusedProfile, "GPIO0", 1 << 0, "gpmc_ad2"}, //also gpio
-		&RaspberryPiPin{"DONOTCONNECT1", piUnusedProfile, "", 0, "gpmc_ad3"},
-		&RaspberryPiPin{"SCL", piUnusedProfile, "GPIO1", 1 << 1, "gpmc_ad3"}, // also gpio
-		&RaspberryPiPin{"GROUND", piUnusedProfile, "", 0, "gpmc_advn_ale"},
-		&RaspberryPiPin{"GPIO4", piGpioProfile, "GPIO4", 1 << 4, "gpmc_oen_ren"},
-		&RaspberryPiPin{"TXD", piUnusedProfile, "GPIO14", 1 << 14, "gpmc_ben0_cle"},
-		&RaspberryPiPin{"DONOTCONNECT2", piUnusedProfile, "", 0, "gpmc_wen"},
-		&RaspberryPiPin{"RXD", piUnusedProfile, "GPIO15", 1 << 15, "gpmc_ad13"},
-		&RaspberryPiPin{"GPIO17", piGpioProfile, "GPIO17", 1 << 17, "gpmc_ad12"},
-		&RaspberryPiPin{"GPIO18", piGpioProfile, "GPIO18", 1 << 18, "gpmc_ad9"}, // also supports PWM
-		&RaspberryPiPin{"GPIO21", piGpioProfile, "GPIO21", 1 << 21, "gpmc_ad10"},
-		&RaspberryPiPin{"DONOTCONNECT3", piUnusedProfile, "", 0, "gpmc_ad15"},
-		&RaspberryPiPin{"GPIO22", piGpioProfile, "GPIO22", 1 << 22, "gpmc_ad14"},
-		&RaspberryPiPin{"GPIO23", piGpioProfile, "GPIO23", 1 << 23, "gpmc_ad11"},
-		&RaspberryPiPin{"DONOTCONNECT4", piUnusedProfile, "", 0, "gpmc_clk"},
-		&RaspberryPiPin{"GPIO24", piGpioProfile, "GPIO24", 1 << 24, "gpmc_ad8"},
-		&RaspberryPiPin{"MOSI", piUnusedProfile, "GPIO10", 1 << 10, "gpmc_csn2"},
-		&RaspberryPiPin{"DONOTCONNECT5", piUnusedProfile, "", 0, "gpmc_csn1"},
-		&RaspberryPiPin{"MISO", piUnusedProfile, "GPIO9", 1 << 9, "gpmc_ad5"},
-		&RaspberryPiPin{"GPIO25", piGpioProfile, "GPIO25", 1 << 25, "gpmc_ad4"},
-		&RaspberryPiPin{"SCLK", piUnusedProfile, "GPIO11", 1 << 11, "gpmc_ad1"},
-		&RaspberryPiPin{"CE0N", piUnusedProfile, "GPIO8", 1 << 8, "gpmc_ad0"},
-		&RaspberryPiPin{"DONOTCONNECT6", piUnusedProfile, "", 0, "gpmc_csn0"},
-		&RaspberryPiPin{"CE1N", piUnusedProfile, "GPIO7", 1 << 7, "lcd_vsync"},
+		makePiPin("NULL", piUnusedProfile, "", 0, 0, 0), // 0 - spacer
+		makePiPin("3.3V", piUnusedProfile, "", 0, 0, 0),
+		makePiPin("5V", piUnusedProfile, "", 0, 0, 0),
+		makePiPin("SDA", piUnusedProfile, "GPIO0", PI_FUNC_REG_0, 0, 1 << 0), //also gpio
+		makePiPin("DONOTCONNECT1", piUnusedProfile, "", 0, 0, 0),
+		makePiPin("SCL", piUnusedProfile, "GPIO1", PI_FUNC_REG_0, 3, 1 << 1), // also gpio
+		makePiPin("GROUND", piUnusedProfile, "", 0, 0, 0),
+		makePiPin("GPIO4", piGpioProfile, "GPIO4", PI_FUNC_REG_0, 12, 1 << 4),
+		makePiPin("TXD", piUnusedProfile, "GPIO14", PI_FUNC_REG_1, 12, 1 << 14),
+		makePiPin("DONOTCONNECT2", piUnusedProfile, "", 0, 0, 0),
+		makePiPin("RXD", piUnusedProfile, "GPIO15", PI_FUNC_REG_1, 15, 1 << 15),
+		makePiPin("GPIO17", piGpioProfile, "GPIO17", PI_FUNC_REG_1, 21, 1 << 17),
+		makePiPin("GPIO18", piGpioProfile, "GPIO18", PI_FUNC_REG_1, 24, 1 << 18), // also supports PWM
+		makePiPin("GPIO21", piGpioProfile, "GPIO21", PI_FUNC_REG_2, 3, 1 << 21),
+		makePiPin("DONOTCONNECT3", piUnusedProfile, "", 0, 0, 0),
+		makePiPin("GPIO22", piGpioProfile, "GPIO22", PI_FUNC_REG_2, 6, 1 << 22),
+		makePiPin("GPIO23", piGpioProfile, "GPIO23", PI_FUNC_REG_2, 9, 1 << 23),
+		makePiPin("DONOTCONNECT4", piUnusedProfile, "", 0, 0, 0),
+		makePiPin("GPIO24", piGpioProfile, "GPIO24", PI_FUNC_REG_2, 12, 1 << 24),
+		makePiPin("MOSI", piUnusedProfile, "GPIO10", PI_FUNC_REG_1, 0, 1 << 10),
+		makePiPin("DONOTCONNECT5", piUnusedProfile, "", 0, 0, 0),
+		makePiPin("MISO", piUnusedProfile, "GPIO9", PI_FUNC_REG_0, 27, 1 << 9),
+		makePiPin("GPIO25", piGpioProfile, "GPIO25", PI_FUNC_REG_2, 15, 1 << 25),
+		makePiPin("SCLK", piUnusedProfile, "GPIO11", PI_FUNC_REG_1, 3, 1 << 11),
+		makePiPin("CE0N", piUnusedProfile, "GPIO8", PI_FUNC_REG_0, 24, 1 << 8),
+		makePiPin("DONOTCONNECT6", piUnusedProfile, "", 0, 0, 0),
+		makePiPin("CE1N", piUnusedProfile, "GPIO7", PI_FUNC_REG_0, 21, 1 << 7),
 	}
 	piPins = p
 }
@@ -99,6 +119,8 @@ func init() {
 type RaspberryPiDriver struct {
 	// Mapped memory for directly accessing hardware registers
 	gpioMmap []byte
+
+	gpioMem *[PI_GPIO_MMAP_N_UINT32]uint
 }
 
 func (d *RaspberryPiDriver) Init() error {
@@ -203,29 +225,27 @@ func (d *RaspberryPiDriver) PinMode(pin Pin, mode PinIOMode) error {
 	p := piPins[pin]
 
 	if mode == OUTPUT {
-		e := d.pinMux(p.mode0Name, CONF_GPIO_OUTPUT)
-		if e != nil {
-			return e
-		}
-
-		d.clearRegL(p.port+uint(GPIO_OE), p.bit)
+		d.gpioMem[p.funcReg] = (d.gpioMem[p.funcReg] & ^(7 << p.funcShift)) | 1<<p.funcShift
 	} else {
-		pull := CONF_PULL_DISABLE
-		// note: pull up/down modes assume that CONF_PULLDOWN resets the pull disable bit
-		if mode == INPUT_PULLUP {
-			pull = CONF_PULLUP
-		} else if mode == INPUT_PULLDOWN {
-			pull = CONF_PULLDOWN
-		}
+		d.gpioMem[p.funcReg] = (d.gpioMem[p.FuncReg] & ^(7 << p.funcShift))
 
-		e := d.pinMux(p.mode0Name, CONF_GPIO_INPUT|uint(pull))
-		if e != nil {
-			return e
-		}
+// BB:
+//		pull := CONF_PULL_DISABLE
+//		// note: pull up/down modes assume that CONF_PULLDOWN resets the pull disable bit
+//		if mode == INPUT_PULLUP {
+//			pull = CONF_PULLUP
+//		} else if mode == INPUT_PULLDOWN {
+//			pull = CONF_PULLDOWN
+//		}
+//
+//		e := d.pinMux(p.mode0Name, CONF_GPIO_INPUT|uint(pull))
+//		if e != nil {
+//			return e
+//		}
 
 //		fmt.Printf("R/W dir reg BEFORE value is %x\n", d.getRegL(p.port+uint(GPIO_OE)))
 
-		d.orRegL(p.port+uint(GPIO_OE), p.bit)
+//		d.orRegL(p.port+uint(GPIO_OE), p.bit)
 //		fmt.Printf("R/W dir reg AFTER value is %x\n", d.getRegL(p.port+uint(GPIO_OE)))
 	}
 	return nil
@@ -306,36 +326,37 @@ void pullUpDnControlWPi (int pin, int pud)
 */
 }
 
-func (d *RaspberryPiDriver) pinMux(mux string, mode uint) error {
-	// Uses kernel omap_mux files to set pin modes.
-	// There's no simple way to write the control module registers from a 
-	// user-level process because it lacks the proper privileges, but it's 
-	// easy enough to just use the built-in file-based system and let the 
-	// kernel do the work. 
-	f, e := os.OpenFile(PINMUX_PATH+mux, os.O_WRONLY|os.O_TRUNC, 0666)
-	if e != nil {
-		return e
-	}
-
-	s := strconv.FormatInt(int64(mode), 16)
-//	fmt.Printf("Writing mode %s to mux file %s\n", s, PINMUX_PATH+mux)
-	f.WriteString(s)
-	return nil
-}
+//func (d *RaspberryPiDriver) pinMux(mux string, mode uint) error {
+//	// Uses kernel omap_mux files to set pin modes.
+//	// There's no simple way to write the control module registers from a 
+//	// user-level process because it lacks the proper privileges, but it's 
+//	// easy enough to just use the built-in file-based system and let the 
+//	// kernel do the work. 
+//	f, e := os.OpenFile(PINMUX_PATH+mux, os.O_WRONLY|os.O_TRUNC, 0666)
+//	if e != nil {
+//		return e
+//	}
+//
+//	s := strconv.FormatInt(int64(mode), 16)
+////	fmt.Printf("Writing mode %s to mux file %s\n", s, PINMUX_PATH+mux)
+//	f.WriteString(s)
+//	return nil
+//}
 
 func (d *RaspberryPiDriver) DigitalWrite(pin Pin, value int) (e error) {
 	p := piPins[pin]
 	if value == 0 {
-		d.gpioMem[p.clrAddr] = p.bit
+		d.gpioMem[PI_GPIO_PORT0_CLEAR_REG] = p.bit
 	} else {
-		d.gpioMem[p.setAddr] = p.bit
+		d.gpioMem[PI_GPIO_PORT0_SET_REG] = p.bit
 	}
 	return nil
 }
 
 func (d *RaspberryPiDriver) DigitalRead(pin Pin) (value int, e error) {
 	p := piPins[pin]
-	reg := d.getRegL(p.port+GPIO_DATAIN)
+	reg := d.gpioMem[PI_GPIO_PORT0_INPUT_LEVEL]
+//	reg := d.getRegL(p.port+GPIO_DATAIN)
 	//	fmt.Printf("\nraw in: %x (checking bit %d)\n", reg, p.bit)
 	if (reg & p.bit) != 0 {
 		return HIGH, nil
@@ -395,18 +416,20 @@ func (d *RaspberryPiDriver) clearRegL(address uint, mask uint) {
 // Returns unpacked 32 bit register value starting from address. Integers
 // are little endian on BeagleBone
 func (d *RaspberryPiDriver) getRegL(address uint) (result uint) {
-	result = uint(d.mmap[address])
-	result |= uint(d.mmap[address+1])<<8
-	result |= uint(d.mmap[address+2])<<16
-	result |= uint(d.mmap[address+3])<<24
-	return result
+	return d.gpioMem[address]
+//	result = uint(d.mmap[address])
+//	result |= uint(d.mmap[address+1])<<8
+//	result |= uint(d.mmap[address+2])<<16
+//	result |= uint(d.mmap[address+3])<<24
+//	return result
 }
 
 func (d *RaspberryPiDriver) setRegL(address uint, value uint) {
-	d.mmap[address] = byte(value & 0xff)
-	d.mmap[address+1] = byte((value >> 8) & 0xff)
-	d.mmap[address+2] = byte((value >> 16) & 0xff)
-	d.mmap[address+3] = byte((value >> 24) & 0xff)
+	d.gpioMem[address] = value
+//	d.mmap[address] = byte(value & 0xff)
+//	d.mmap[address+1] = byte((value >> 8) & 0xff)
+//	d.mmap[address+2] = byte((value >> 16) & 0xff)
+//	d.mmap[address+3] = byte((value >> 24) & 0xff)
 }
 
 func (d *RaspberryPiDriver) PinMap() (pinMap HardwarePinMap) {
@@ -425,29 +448,9 @@ func (d *RaspberryPiDriver) PinMap() (pinMap HardwarePinMap) {
 
 /*****
 
-#define	NUM_PINS	17
-
-#define	WPI_MODE_PINS		 0
-#define	WPI_MODE_GPIO		 1
-#define	WPI_MODE_GPIO_SYS	 2
-#define	WPI_MODE_PIFACE		 3
-
-#define	INPUT		 0
-#define	OUTPUT		 1
-#define	PWM_OUTPUT	 2
 
 #define	LOW		 0
 #define	HIGH		 1
-
-#define	PUD_OFF		 0
-#define	PUD_DOWN	 1
-#define	PUD_UP		 2
-
-extern void (*pinMode)          (int pin, int mode) ;
-extern void (*pullUpDnControl)  (int pin, int pud) ;
-extern void (*digitalWrite)     (int pin, int value) ;
-extern void (*pwmWrite)         (int pin, int value) ;
-extern int  (*digitalRead)      (int pin) ;
 
 // Interrupts
 
@@ -458,12 +461,6 @@ extern int  (*waitForInterrupt) (int pin, int mS) ;
 extern int piHiPri (int pri) ;
 
 
-void (*pinMode)          (int pin, int mode) ;
-void (*pullUpDnControl)  (int pin, int pud) ;
-void (*digitalWrite)     (int pin, int value) ;
-void (*pwmWrite)         (int pin, int value) ;
-int  (*digitalRead)      (int pin) ;
-int  (*waitForInterrupt) (int pin, int mS) ;
 
 // Port function select bits
 
@@ -513,102 +510,6 @@ static volatile uint32_t *gpio ;
 static volatile uint32_t *pwm ;
 static volatile uint32_t *clk ;
 
-// The BCM2835 has 54 GPIO pins.
-//	BCM2835 data sheet, Page 90 onwards.
-//	There are 6 control registers, each control the functions of a block
-//	of 10 pins.
-//	Each control register has 10 sets of 3 bits per GPIO pin:
-//
-//	000 = GPIO Pin X is an input
-//	001 = GPIO Pin X is an output
-//	100 = GPIO Pin X takes alternate function 0
-//	101 = GPIO Pin X takes alternate function 1
-//	110 = GPIO Pin X takes alternate function 2
-//	111 = GPIO Pin X takes alternate function 3
-//	011 = GPIO Pin X takes alternate function 4
-//	010 = GPIO Pin X takes alternate function 5
-//
-// So the 3 bits for port X are:
-//	X / 10 + ((X % 10) * 3)
-
-// sysFds:
-//	Map a file descriptor from the /sys/class/gpio/gpioX/value
-
-static int sysFds [64] ;
-
-// Doing it the Arduino way with lookup tables...
-//	Yes, it's probably more innefficient than all the bit-twidling, but it
-//	does tend to make it all a bit clearer. At least to me!
-
-// pinToGpio:
-//	Take a Wiring pin (0 through X) and re-map it to the BCM_GPIO pin
-
-static int pinToGpio [64] =
-{
-  17, 18, 21, 22, 23, 24, 25, 4,	// From the Original Wiki - GPIO 0 through 7
-   0,  1,				// I2C  - SDA0, SCL0
-   8,  7,				// SPI  - CE1, CE0
-  10,  9, 11, 				// SPI  - MOSI, MISO, SCLK
-  14, 15,				// UART - Tx, Rx
-
-// Padding:
-
-          -1, -1, -1,-1,-1,-1,-1, -1, -1, -1, -1, -1, -1, -1, -1,	// ... 31
-  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,	// ... 47
-  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,	// ... 63
-} ;
-
-// gpioToGPFSEL:
-//	Map a BCM_GPIO pin to it's control port. (GPFSEL 0-5)
-
-static uint8_t gpioToGPFSEL [] =
-{
-  0,0,0,0,0,0,0,0,0,0,
-  1,1,1,1,1,1,1,1,1,1,
-  2,2,2,2,2,2,2,2,2,2,
-  3,3,3,3,3,3,3,3,3,3,
-  4,4,4,4,4,4,4,4,4,4,
-  5,5,5,5,5,5,5,5,5,5,
-} ;
-
-// gpioToShift
-//	Define the shift up for the 3 bits per pin in each GPFSEL port
-
-static uint8_t gpioToShift [] =
-{
-  0,3,6,9,12,15,18,21,24,27,
-  0,3,6,9,12,15,18,21,24,27,
-  0,3,6,9,12,15,18,21,24,27,
-  0,3,6,9,12,15,18,21,24,27,
-  0,3,6,9,12,15,18,21,24,27,
-} ;
-
-// gpioToGPSET:
-//	(Word) offset to the GPIO Set registers for each GPIO pin
-
-static uint8_t gpioToGPSET [] =
-{
-   7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-} ;
-
-// gpioToGPCLR:
-//	(Word) offset to the GPIO Clear registers for each GPIO pin
-
-static uint8_t gpioToGPCLR [] =
-{
-  10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,
-  11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,
-} ;
-
-// gpioToGPLEV:
-//	(Word) offset to the GPIO Input level registers for each GPIO pin
-
-static uint8_t gpioToGPLEV [] =
-{
-  13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,
-  14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,
-} ;
 
 // gpioToPUDCLK
 //	(Word) offset to the Pull Up Down Clock regsiter
