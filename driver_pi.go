@@ -22,10 +22,10 @@ package hwio
 
 import (
 	"os"
-	"strconv"
+//	"strconv"
 	"syscall"
 	"errors"
-//	"fmt"
+	"unsafe"
 //	"time"
 )
 
@@ -93,14 +93,14 @@ func init() {
 		makePiPin("NULL", piUnusedProfile, "", 0, 0, 0), // 0 - spacer
 		makePiPin("3.3V", piUnusedProfile, "", 0, 0, 0),
 		makePiPin("5V", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("SDA", piUnusedProfile, "GPIO0", PI_FUNC_REG_0, 0, 1 << 0), //also gpio
+		makePiPin("SDA", piGpioProfile, "GPIO0", PI_FUNC_REG_0, 0, 1 << 0), //also gpio
 		makePiPin("DONOTCONNECT1", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("SCL", piUnusedProfile, "GPIO1", PI_FUNC_REG_0, 3, 1 << 1), // also gpio
+		makePiPin("SCL", piGpioProfile, "GPIO1", PI_FUNC_REG_0, 3, 1 << 1), // also gpio
 		makePiPin("GROUND", piUnusedProfile, "", 0, 0, 0),
 		makePiPin("GPIO4", piGpioProfile, "GPIO4", PI_FUNC_REG_0, 12, 1 << 4),
-		makePiPin("TXD", piUnusedProfile, "GPIO14", PI_FUNC_REG_1, 12, 1 << 14),
+		makePiPin("TXD", piGpioProfile, "GPIO14", PI_FUNC_REG_1, 12, 1 << 14),
 		makePiPin("DONOTCONNECT2", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("RXD", piUnusedProfile, "GPIO15", PI_FUNC_REG_1, 15, 1 << 15),
+		makePiPin("RXD", piGpioProfile, "GPIO15", PI_FUNC_REG_1, 15, 1 << 15),
 		makePiPin("GPIO17", piGpioProfile, "GPIO17", PI_FUNC_REG_1, 21, 1 << 17),
 		makePiPin("GPIO18", piGpioProfile, "GPIO18", PI_FUNC_REG_1, 24, 1 << 18), // also supports PWM
 		makePiPin("GPIO21", piGpioProfile, "GPIO21", PI_FUNC_REG_2, 3, 1 << 21),
@@ -109,14 +109,14 @@ func init() {
 		makePiPin("GPIO23", piGpioProfile, "GPIO23", PI_FUNC_REG_2, 9, 1 << 23),
 		makePiPin("DONOTCONNECT4", piUnusedProfile, "", 0, 0, 0),
 		makePiPin("GPIO24", piGpioProfile, "GPIO24", PI_FUNC_REG_2, 12, 1 << 24),
-		makePiPin("MOSI", piUnusedProfile, "GPIO10", PI_FUNC_REG_1, 0, 1 << 10),
+		makePiPin("MOSI", piGpioProfile, "GPIO10", PI_FUNC_REG_1, 0, 1 << 10),
 		makePiPin("DONOTCONNECT5", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("MISO", piUnusedProfile, "GPIO9", PI_FUNC_REG_0, 27, 1 << 9),
+		makePiPin("MISO", piGpioProfile, "GPIO9", PI_FUNC_REG_0, 27, 1 << 9),
 		makePiPin("GPIO25", piGpioProfile, "GPIO25", PI_FUNC_REG_2, 15, 1 << 25),
-		makePiPin("SCLK", piUnusedProfile, "GPIO11", PI_FUNC_REG_1, 3, 1 << 11),
-		makePiPin("CE0N", piUnusedProfile, "GPIO8", PI_FUNC_REG_0, 24, 1 << 8),
+		makePiPin("SCLK", piGpioProfile, "GPIO11", PI_FUNC_REG_1, 3, 1 << 11),
+		makePiPin("CE0N", piGpioProfile, "GPIO8", PI_FUNC_REG_0, 24, 1 << 8),
 		makePiPin("DONOTCONNECT6", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("CE1N", piUnusedProfile, "GPIO7", PI_FUNC_REG_0, 21, 1 << 7),
+		makePiPin("CE1N", piGpioProfile, "GPIO7", PI_FUNC_REG_0, 21, 1 << 7),
 	}
 	piPins = p
 }
@@ -139,6 +139,7 @@ func (d *RaspberryPiDriver) Init() error {
 		return e
 	}
 	d.gpioMmap = mmap
+	d.gpioMem = (*[PI_GPIO_MMAP_N_UINT32] uint) (unsafe.Pointer(&mmap[0]))
 
 	return nil
 
@@ -232,7 +233,7 @@ func (d *RaspberryPiDriver) PinMode(pin Pin, mode PinIOMode) error {
 	if mode == OUTPUT {
 		d.gpioMem[p.funcReg] = (d.gpioMem[p.funcReg] & ^(7 << p.funcShift)) | 1<<p.funcShift
 	} else {
-		d.gpioMem[p.funcReg] = (d.gpioMem[p.FuncReg] & ^(7 << p.funcShift))
+		d.gpioMem[p.funcReg] = (d.gpioMem[p.funcReg] & ^(7 << p.funcShift))
 
 // BB:
 //		pull := CONF_PULL_DISABLE
