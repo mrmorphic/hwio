@@ -84,7 +84,10 @@ func assertDriver() error {
 // of the device.
 func SetDriver(d HardwareDriver) {
 	driver = d
-	driver.Init()
+	e := driver.Init()
+	if e != nil {
+		fmt.Printf("Could not initialise driver: %s", e)
+	}
 	definedPins = driver.PinMap()
 	assignedPins = make(map[Pin]*assignedPin)
 }
