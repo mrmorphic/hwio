@@ -1,6 +1,6 @@
 package hwio
 
-// A user-land driver for Raspberry Pi
+// A driver for Raspberry Pi
 //
 // Things known to work (tested on hardware):
 // - nothing yet
@@ -10,6 +10,7 @@ package hwio
 // - UNTESTED FEATURES MAY FRY YOUR BOARD
 // - ANY CHANGES YOU MAKE TO THIS MAY FRY YOUR BOARD
 // Don't say you weren't warned.
+// Developed and tested against Occidental0.2, adafruit's distribution.
 
 // @todo Implement GPIO output
 // @todo Implement GPIO input
@@ -40,6 +41,16 @@ func (p RaspberryPiPin) GetName() string {
 var piPins []*RaspberryPiPin
 var piGpioProfile []Capability
 var piUnusedProfile []Capability
+
+const
+	PI_BCM2708_PERI_BASE = 0x20000000
+	PI_GPIO_BASE		(PI_BCM2708_PERI_BASE + 0x200000)
+	// CLOCK_BASE		(BCM2708_PERI_BASE + 0x101000)
+	// GPIO_PWM		(BCM2708_PERI_BASE + 0x20C000)
+
+	PI_PAGE_SIZE = (4*1024)
+	PI_BLOCK_SIZE = (4*1024)
+
 
 func init() {
 	piGpioProfile = []Capability{
@@ -87,7 +98,7 @@ func init() {
 
 type RaspberryPiDriver struct {
 	// Mapped memory for directly accessing hardware registers
-	mmap []byte
+	gpioMmap []byte
 }
 
 func (d *RaspberryPiDriver) Init() error {
@@ -96,13 +107,11 @@ func (d *RaspberryPiDriver) Init() error {
 	if e != nil {
 		return e
 	}
-	mmap, e := syscall.Mmap(int(file.Fd()), MMAP_OFFSET, MMAP_SIZE, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
+	mmap, e := syscall.Mmap(int(file.Fd()), PI_GPIO_BASE, PI_BLOCK_SIZE, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if e != nil {
 		return e
 	}
-	d.mmap = mmap
-
-	d.analogInit()
+	d.gpioMmap = mmap
 
 	return nil
 
@@ -113,13 +122,6 @@ int wiringPiSetup (void)
   uint8_t *gpioMem, *pwmMem, *clkMem ;
   struct timeval tv ;
 
-           pinMode =          pinModeWPi ;
-   pullUpDnControl =  pullUpDnControlWPi ;
-      digitalWrite =     digitalWriteWPi ;
-          pwmWrite =         pwmWriteWPi ;
-       digitalRead =      digitalReadWPi ;
-  waitForInterrupt = waitForInterruptWPi ;
-  
 // Open the master /dev/memory device
 
   if ((fd = open ("/dev/mem", O_RDWR | O_SYNC) ) < 0)
@@ -194,7 +196,7 @@ int wiringPiSetup (void)
 }
 
 func (d *RaspberryPiDriver) Close() {
-	syscall.Munmap(d.mmap)
+	syscall.Munmap(d.gpioMmap)
 }
 
 func (d *RaspberryPiDriver) PinMode(pin Pin, mode PinIOMode) error {
@@ -322,22 +324,11 @@ func (d *RaspberryPiDriver) pinMux(mux string, mode uint) error {
 }
 
 func (d *RaspberryPiDriver) DigitalWrite(pin Pin, value int) (e error) {
-/*
-void digitalWriteWPi (int pin, int value)
-{
-  int gpioPin = pinToGpio [pin & 63] ;
-
-  if (value == LOW)
-    *(gpio + gpioToGPCLR [gpioPin]) = 1 << gpioPin ;
-  else
-    *(gpio + gpioToGPSET [gpioPin]) = 1 << gpioPin ;
-}
-*/
 	p := piPins[pin]
 	if value == 0 {
-		d.clearRegL(p.port+GPIO_DATAOUT, p.bit)
+		d.gpioMem[p.clrAddr] = p.bit
 	} else {
-		d.orRegL(p.port+GPIO_DATAOUT, p.bit)
+		d.gpioMem[p.setAddr] = p.bit
 	}
 	return nil
 }
@@ -432,9 +423,6 @@ func (d *RaspberryPiDriver) PinMap() (pinMap HardwarePinMap) {
 	return
 }
 
-func (d *RaspberryPiDriver) analogInit() {
-}
-
 /*****
 
 #define	NUM_PINS	17
@@ -489,18 +477,6 @@ int  (*waitForInterrupt) (int pin, int mS) ;
 #define	FSEL_ALT4		0b011
 #define	FSEL_ALT5		0b010
 
-// Access from ARM Running Linux
-//	Take from Gert/Doms code. Some of this is not in the manual
-//	that I can find )-:
-
-#define BCM2708_PERI_BASE	0x20000000
-#define GPIO_PADS		(BCM2708_PERI_BASE + 0x100000)
-#define CLOCK_BASE		(BCM2708_PERI_BASE + 0x101000)
-#define GPIO_BASE		(BCM2708_PERI_BASE + 0x200000)
-#define GPIO_PWM		(BCM2708_PERI_BASE + 0x20C000)
-
-#define	PAGE_SIZE		(4*1024)
-#define	BLOCK_SIZE		(4*1024)
 
 // PWM
 
