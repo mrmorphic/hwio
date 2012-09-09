@@ -11,9 +11,14 @@ package hwio
 // - ANY CHANGES YOU MAKE TO THIS MAY FRY YOUR BOARD
 // Don't say you weren't warned.
 // Developed and tested against Occidental0.2, adafruit's distribution.
-
-// @todo Implement GPIO output
-// @todo Implement GPIO input
+//
+// References:
+// - http://elinux.org/RPi_Low-level_peripherals
+// - https://projects.drogon.net/raspberry-pi/wiringpi/
+// - BCM2835 technical reference
+//
+// @todo Implement pull up/down on input
+// @todo Implement PWM
 
 import (
 	"os"
@@ -510,16 +515,6 @@ static volatile uint32_t *gpio ;
 static volatile uint32_t *pwm ;
 static volatile uint32_t *clk ;
 
-
-// gpioToPUDCLK
-//	(Word) offset to the Pull Up Down Clock regsiter
-
-static uint8_t gpioToPUDCLK [] =
-{
-  38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,
-  39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,
-} ;
-
 // gpioToPwmALT
 //	the ALT value to put a GPIO pin into PWM mode
 
@@ -553,8 +548,6 @@ int waitForInterruptWPi (int pin, int mS)
 {
   return waitForInterruptSys (pinToGpio [pin & 63], mS) ;
 }
-
-
 
 *****/
 
