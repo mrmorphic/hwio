@@ -73,8 +73,14 @@ const (
 	PI_FUNC_REG_1 = 1
 	PI_FUNC_REG_2 = 2
 
+	// registers for pull up/down
 	PI_PUD = 37
 	PI_PUD_CLK_REG = 38
+
+	// values for pull up/down
+	PI_PUD_DISABLE = 0
+	PI_PUD_PULLDOWN_ENABLE = 1
+	PI_PUD_PULLUP_ENABLE = 2
 )
 
 func init() {
@@ -233,26 +239,26 @@ func (d *RaspberryPiDriver) PinMode(pin Pin, mode PinIOMode) error {
 	if mode == OUTPUT {
 		d.gpioMem[p.funcReg] = (d.gpioMem[p.funcReg] & ^(7 << p.funcShift)) | 1<<p.funcShift
 	} else {
+		// set pin as input
 		d.gpioMem[p.funcReg] = (d.gpioMem[p.funcReg] & ^(7 << p.funcShift))
 
-// BB:
-//		pull := CONF_PULL_DISABLE
-//		// note: pull up/down modes assume that CONF_PULLDOWN resets the pull disable bit
-//		if mode == INPUT_PULLUP {
-//			pull = CONF_PULLUP
-//		} else if mode == INPUT_PULLDOWN {
-//			pull = CONF_PULLDOWN
-//		}
-//
-//		e := d.pinMux(p.mode0Name, CONF_GPIO_INPUT|uint(pull))
-//		if e != nil {
-//			return e
-//		}
+		// set pull up/down as appropriate. Write the mode to PI_PUD register, and clock it in
+		// with PI_PUD_CLK_REG
+		pull := PI_PUD_DISABLE
+		if mode == INPUT_PULLUP {
+			pull = PI_PUD_PULLUP_ENABLE
+		} else if mode == INPUT_PULLDOWN {
+			pull = PI_PUD_PULLDOWN_ENABLE
+		}
 
-//		fmt.Printf("R/W dir reg BEFORE value is %x\n", d.getRegL(p.port+uint(GPIO_OE)))
+		d.gpioMem[PI_PUD] = uint(pull)
+		DelayMicroseconds(10)
 
-//		d.orRegL(p.port+uint(GPIO_OE), p.bit)
-//		fmt.Printf("R/W dir reg AFTER value is %x\n", d.getRegL(p.port+uint(GPIO_OE)))
+		d.gpioMem[PI_PUD_CLK_REG] = 1 << p.bit
+		DelayMicroseconds(10)
+
+		d.gpioMem[PI_PUD] = 0
+		d.gpioMem[PI_PUD_CLK_REG] = 0
 	}
 	return nil
 
@@ -309,45 +315,8 @@ void pinModeGpio (int pin, int mode)
 
   }
 
-// When we change mode of any pin, we remove the pull up/downs
-
-  pullUpDnControl (pin, PUD_OFF) ;
-}
-
-*/
-
-/*
-void pullUpDnControlWPi (int pin, int pud)
-{
-  pin = pinToGpio [pin & 63] ;
-
-  *(gpio + 37) = pud ;
-  delayMicroseconds (10) ;
-  *(gpio + gpioToPUDCLK [pin]) = 1 << pin ;
-  delayMicroseconds (10) ;
-  
-  *(gpio + 37) = 0 ;
-  *(gpio + gpioToPUDCLK [pin]) = 0 ;
-}
 */
 }
-
-//func (d *RaspberryPiDriver) pinMux(mux string, mode uint) error {
-//	// Uses kernel omap_mux files to set pin modes.
-//	// There's no simple way to write the control module registers from a 
-//	// user-level process because it lacks the proper privileges, but it's 
-//	// easy enough to just use the built-in file-based system and let the 
-//	// kernel do the work. 
-//	f, e := os.OpenFile(PINMUX_PATH+mux, os.O_WRONLY|os.O_TRUNC, 0666)
-//	if e != nil {
-//		return e
-//	}
-//
-//	s := strconv.FormatInt(int64(mode), 16)
-////	fmt.Printf("Writing mode %s to mux file %s\n", s, PINMUX_PATH+mux)
-//	f.WriteString(s)
-//	return nil
-//}
 
 func (d *RaspberryPiDriver) DigitalWrite(pin Pin, value int) (e error) {
 	p := piPins[pin]
@@ -368,22 +337,6 @@ func (d *RaspberryPiDriver) DigitalRead(pin Pin) (value int, e error) {
 		return HIGH, nil
 	}
 	return LOW, nil
-/*
-
-int digitalReadWPi (int pin)
-{
-  int gpioPin ;
-
-  pin &= 63 ;
-
-  gpioPin = pinToGpio [pin] ;
-
-  if ((*(gpio + gpioToGPLEV [gpioPin]) & (1 << gpioPin)) != 0)
-    return HIGH ;
-  else
-    return LOW ;
-}
-*/
 }
 
 func (d *RaspberryPiDriver) AnalogWrite(pin Pin, value int) (e error) {
@@ -423,19 +376,10 @@ func (d *RaspberryPiDriver) clearRegL(address uint, mask uint) {
 // are little endian on BeagleBone
 func (d *RaspberryPiDriver) getRegL(address uint) (result uint) {
 	return d.gpioMem[address]
-//	result = uint(d.mmap[address])
-//	result |= uint(d.mmap[address+1])<<8
-//	result |= uint(d.mmap[address+2])<<16
-//	result |= uint(d.mmap[address+3])<<24
-//	return result
 }
 
 func (d *RaspberryPiDriver) setRegL(address uint, value uint) {
 	d.gpioMem[address] = value
-//	d.mmap[address] = byte(value & 0xff)
-//	d.mmap[address+1] = byte((value >> 8) & 0xff)
-//	d.mmap[address+2] = byte((value >> 16) & 0xff)
-//	d.mmap[address+3] = byte((value >> 24) & 0xff)
 }
 
 func (d *RaspberryPiDriver) PinMap() (pinMap HardwarePinMap) {
@@ -454,10 +398,6 @@ func (d *RaspberryPiDriver) PinMap() (pinMap HardwarePinMap) {
 
 /*****
 
-
-#define	LOW		 0
-#define	HIGH		 1
-
 // Interrupts
 
 extern int  (*waitForInterrupt) (int pin, int mS) ;
@@ -466,19 +406,6 @@ extern int  (*waitForInterrupt) (int pin, int mS) ;
 
 extern int piHiPri (int pri) ;
 
-
-
-// Port function select bits
-
-#define	FSEL_INPT		0b000
-#define	FSEL_OUTP		0b001
-#define	FSEL_ALT0		0b100
-#define	FSEL_ALT0		0b100
-#define	FSEL_ALT1		0b101
-#define	FSEL_ALT2		0b110
-#define	FSEL_ALT3		0b111
-#define	FSEL_ALT4		0b011
-#define	FSEL_ALT5		0b010
 
 
 // PWM
