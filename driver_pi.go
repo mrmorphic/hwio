@@ -254,7 +254,7 @@ func (d *RaspberryPiDriver) PinMode(pin Pin, mode PinIOMode) error {
 		d.gpioMem[PI_PUD] = uint(pull)
 		DelayMicroseconds(10)
 
-		d.gpioMem[PI_PUD_CLK_REG] = 1 << p.bit
+		d.gpioMem[PI_PUD_CLK_REG] = p.bit
 		DelayMicroseconds(10)
 
 		d.gpioMem[PI_PUD] = 0
