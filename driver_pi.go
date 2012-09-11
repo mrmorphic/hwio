@@ -74,8 +74,8 @@ const (
 	PI_FUNC_REG_2 = 2
 
 	// registers for pull up/down
-	PI_PUD = 37
-	PI_PUD_CLK_REG = 38
+	PI_GPPUD = 37
+	PI_GPPUDCLK0 = 38
 
 	// values for pull up/down
 	PI_PUD_DISABLE = 0
@@ -251,14 +251,14 @@ func (d *RaspberryPiDriver) PinMode(pin Pin, mode PinIOMode) error {
 			pull = PI_PUD_PULLDOWN_ENABLE
 		}
 
-		d.gpioMem[PI_PUD] = uint(pull)
-		DelayMicroseconds(10)
+		d.gpioMem[PI_GPPUD] = uint(pull)
+		DelayMicroseconds(25)
 
-		d.gpioMem[PI_PUD_CLK_REG] = p.bit
-		DelayMicroseconds(10)
+		d.gpioMem[PI_GPPUDCLK0] = p.bit
+		DelayMicroseconds(25)
 
-		d.gpioMem[PI_PUD] = 0
-		d.gpioMem[PI_PUD_CLK_REG] = 0
+		d.gpioMem[PI_GPPUD] = 0
+		d.gpioMem[PI_GPPUDCLK0] = 0
 	}
 	return nil
 
