@@ -6,7 +6,47 @@ hwio is a library for interfacing with hardware I/O. It is loosely modelled on
 the Arduino programming style, but deviating where that doesn't make sense in
 go. It makes use of a thin hardware abstraction via an interface so a program
 written against the library for say a beaglebone could be easily compiled to run
-on a raspberry pi, maybe only changing logical pin numbers.
+on a raspberry pi, maybe only changing pin references.
+
+To use hwio, you just need to import it into your go project, initialise pins as
+required, and then use functions that manipulate the pins.
+
+Initialising a pin looks like this:
+
+	myPin, err := hwio.GetPin("GPIO4")
+	err = hwio.PinMode(myPin, hwio.OUTPUT)
+
+Unlike Arduino, where the pins are directly numbered and you just use the number, in hwio
+you get the pin first, by name. This is necessary as different hardware drivers may provide
+different pins.
+
+Writing a value to a pin looks like this:
+
+	hwio.DigitalWrite(myPin, hwio.HIGH)
+
+For more information about using the library, see http://stuffwemade.net/hwio which has:
+
+ *	Pin diagrams for supported boards
+
+
+
+## BIG SHINY DISCLAIMER
+
+REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
+
+ *	It is under development. If you're lucky, it might work. It should be considered
+	Alpha.
+ *	Currently it is limited to GPIO on BeagleBone and Raspberry Pi.
+ *	Only GPIO is tested. Negative interactions with other system functions
+	is not tested.
+ *	**IT MAY FRY YOUR BOARD**
+ *	**IF YOU CHANGE IT, OR LOOK AT IT THE WRONG WAY, IT MAY FRY YOUR BOARD**
+ *	I DON'T WANT PEOPLE GETTING ANGRY WITH ME IF THIS CODE FRIES THEIR BOARD.
+ *	If you don't want to risk frying your board, you can still run the
+ 	unit tests ;-)
+
+
+## How it Works
 
 Hardware drivers implement the interface that allows different devices to
 implement the I/O handling as appropriate. This allows for drivers that use
@@ -17,8 +57,10 @@ direct memory access to I/O registers, but is less portable.
 Some general principles the library attempts to adhere to include:
 
  *	Pin references are logical, and are mapped to hardware pins by the driver.
- *	Not implement Arduino functions for their own sake if go's framework
- 	naturally supports them better, unless we can provide a simpler interface
+ *	Drivers provide pin names, so you can look them up by meaningful names
+	instead of relying on device specific numbers.
+ *	The library does not implement Arduino functions for their own sake if go's
+	framework naturally supports them better, unless we can provide a simpler interface
  	to those functions and keep close to the Arduino semantics.
  *	Make no assumption about the state of a pin whose mode has not been set.
  	Specifically, pins that don't have mode set may not on a particular hardware
@@ -43,27 +85,15 @@ Some general principles the library attempts to adhere to include:
  	implementations should be generic across I/O pins. e.g. not assuming
  	specific pin behaviour as happens with Arduino.
 
-## BIG SHINY DISCLAIMER
-
-REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
-
- *	It is under development. If you're lucky, it might work.
- *	Currently only BeagleBone is supported
- *	It is not properly tested.
- *	**IT MAY FRY YOUR BOARD**
- *	**IF YOU CHANGE IT, OR LOOK AT IT THE WRONG WAY, IT MAY FRY YOUR BOARD**
- *	I DON'T WANT PEOPLE GETTING ANGRY WITH ME IF THIS CODE FRIES THEIR BOARD.
- *	If you don't want to risk frying your board, you can still run the
- 	unit tests ;-)
-
-## What you need to know to use hwio
 
 ### Pins
 
 Pins are logical representation of physical pins on the hardware. To provide
 some abstraction, pins are numbered, much like on an Arduino. Unlike Arduino,
 there is no single mapping to hardware pins - this is done by the hardware
-driver.
+driver. To make it easier to work with, drivers can give one or more names to
+a pin, and you can use GetPin to get a reference to the pin by one of those
+names.
 
 Each driver must implement a method that defines the mapping from logical pins
 to physical pins as understood by that piece of hardware. Additionally, the
@@ -75,34 +105,17 @@ pin can have a different set of capabilities, there is no distinction between
 analog and digital pins as there is in Arduino; there is one set of pins, which
 may support digital and/or analog capabilities.
 
-The caller generally works with logical pin numbers, which are conceptually easier
-for beginners as they correspond to physical pins on a device. The hardware driver
-exposesthe hardware-specific names, however. Generally, a driver should provide
-a beginners document that shows the logical pin numbers and how they map to physical
-connectors to make it easier for beginners.
+The caller generally works with logical pin numbers retrieved by GetPin.
 
-### Prerequisites
-
-### Installation
-
-_I'll do this when it is in a more stable state._
-
-## Driver Specific
-
-### BeagleBone
-
-#### Pin map
 
 ## Things to be done
 
- *	Better performance on raw GPIO
- *	PWM output support (BeagleBone)
+ *	PWM output support (BeagleBone, R-Pi)
  *	Analog input (BeagleBone)
- *	Interupts (lib and BeagleBone)
- *	Serial support for UART pins (lib and BeagleBone)
+ *	Interupts (lib, BeagleBone and R-Pi)
+ *	Serial support for UART pins (lib, BeagleBone and R-Pi)
  *	SPI support; consider augmenting ShiftIn and ShiftOut to use hardware pins
- 	if appropriate
- *	bit functions if they are not already in the go run time
+ 	if appropriate (Beaglebone and R-Pi)
  *	define a way to model multi-pin capabilities. e.g LCD or MMC on BeagleBone
  *	LCD, particularly HD44780 (lib)
  *	Servo (lib)
