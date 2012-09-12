@@ -3,7 +3,13 @@ package hwio
 // A driver for Raspberry Pi
 //
 // Things known to work (tested on hardware):
-// - nothing yet
+// - digital write on all GPIO pins
+// - digital read on all GPIO pins, for modes INPUT, INPUT_PULLUP and INPUT_PULLDOWN
+//
+// Known issues:
+// - digital read with pulldown on GPIO0 and GPIO1 work, but unconnected always behave as being
+//   pulled-up. i.e. pull-down setting appears to be ignored.
+// - must be run as root, so it has permissions to create mmap
 //
 // WARNINGS:
 // - THIS IS STILL UNDER DEVELOPMENT
@@ -17,20 +23,16 @@ package hwio
 // - https://projects.drogon.net/raspberry-pi/wiringpi/
 // - BCM2835 technical reference
 //
-// @todo Implement pull up/down on input
 // @todo Implement PWM
 
 import (
 	"os"
-//	"strconv"
 	"syscall"
 	"errors"
 	"unsafe"
-//	"time"
 )
 
 // Represents info we need to know about a pin on the Pi.
-// @todo Determine if 'hwPin' is required
 type RaspberryPiPin struct {
 	hwPin     string // This intended for the P8.16 format name (currently unused)
 	profile   []Capability
@@ -161,29 +163,6 @@ int wiringPiSetup (void)
   if ((fd = open ("/dev/mem", O_RDWR | O_SYNC) ) < 0)
   {
     fprintf (stderr, "wiringPiSetup: Unable to open /dev/mem: %s\n", strerror (errno)) ;
-    return -1 ;
-  }
-
-// GPIO:
-
-// Allocate 2 pages - 1 ...
-
-  if ((gpioMem = malloc (BLOCK_SIZE + (PAGE_SIZE-1))) == NULL)
-  {
-    fprintf (stderr, "wiringPiSetup: malloc failed: %s\n", strerror (errno)) ;
-    return -1 ;
-  }
-
-// ... presumably to make sure we can round it up to a whole page size
-
-  if (((uint32_t)gpioMem % PAGE_SIZE) != 0)
-    gpioMem += PAGE_SIZE - ((uint32_t)gpioMem % PAGE_SIZE) ;
-
-  gpio = (uint32_t *)mmap((caddr_t)gpioMem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, fd, GPIO_BASE) ;
-
-  if ((int32_t)gpio < 0)
-  {
-    fprintf (stderr, "wiringPiSetup: mmap failed: %s\n", strerror (errno)) ;
     return -1 ;
   }
 
@@ -331,8 +310,6 @@ func (d *RaspberryPiDriver) DigitalWrite(pin Pin, value int) (e error) {
 func (d *RaspberryPiDriver) DigitalRead(pin Pin) (value int, e error) {
 	p := piPins[pin]
 	reg := d.gpioMem[PI_GPIO_PORT0_INPUT_LEVEL]
-//	reg := d.getRegL(p.port+GPIO_DATAIN)
-	//	fmt.Printf("\nraw in: %x (checking bit %d)\n", reg, p.bit)
 	if (reg & p.bit) != 0 {
 		return HIGH, nil
 	}
@@ -355,31 +332,6 @@ func (d *RaspberryPiDriver) AnalogWrite(pin Pin, value int) (e error) {
 
 func (d *RaspberryPiDriver) AnalogRead(pin Pin) (value int, e error) {
 	return 0, errors.New("Analog input is not supported")
-}
-
-// Sets 32 bit Register at address to its current value AND mask.
-func (d *RaspberryPiDriver) andRegL(address uint, mask uint) {
-	d.setRegL(address, d.getRegL(address)&mask)
-}
-
-// Sets 32 bit Register at address to its current value OR mask.
-func (d *RaspberryPiDriver) orRegL(address uint, mask uint) {
-	d.setRegL(address, d.getRegL(address)|mask)
-}
-
-// Clears mask bits in 32 bit register at given address.
-func (d *RaspberryPiDriver) clearRegL(address uint, mask uint) {
-	d.andRegL(address, ^mask)
-}
-
-// Returns unpacked 32 bit register value starting from address. Integers
-// are little endian on BeagleBone
-func (d *RaspberryPiDriver) getRegL(address uint) (result uint) {
-	return d.gpioMem[address]
-}
-
-func (d *RaspberryPiDriver) setRegL(address uint, value uint) {
-	d.gpioMem[address] = value
 }
 
 func (d *RaspberryPiDriver) PinMap() (pinMap HardwarePinMap) {
@@ -405,8 +357,6 @@ extern int  (*waitForInterrupt) (int pin, int mS) ;
 // Schedulling priority
 
 extern int piHiPri (int pri) ;
-
-
 
 // PWM
 
