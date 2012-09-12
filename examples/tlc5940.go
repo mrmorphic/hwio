@@ -42,11 +42,9 @@ func main() {
 	hwio.DigitalWrite(gsclkPin, hwio.LOW)
 
 	// run GS clock in it's own space
-//	go func() {
-		hwio.DigitalWrite(blankPin, hwio.HIGH)
-		hwio.DigitalWrite(blankPin, hwio.LOW)
-		clockData(gsclkPin)
-//	}();
+	hwio.DigitalWrite(blankPin, hwio.HIGH)
+	hwio.DigitalWrite(blankPin, hwio.LOW)
+	clockData(gsclkPin)
 
 	for b := 0; b < 4096; b++ {
 		writeData(uint(b), sinPin, sclkPin, xlatPin)
