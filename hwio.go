@@ -7,9 +7,9 @@ package hwio
 import (
 	"errors"
 	"fmt"
-	"time"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type BitShiftOrder byte
@@ -115,7 +115,7 @@ func GetDefinedPins() HardwarePinMap {
 // @todo GetPin: consider allowing an int or int as string to identify logical pin directly
 func GetPin(cname string) (Pin, error) {
 	for pin, pinDef := range definedPins {
-		for _,name := range pinDef.hwPinRefs {
+		for _, name := range pinDef.hwPinRefs {
 			if name == cname {
 				return pin, nil
 			}

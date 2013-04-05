@@ -1,14 +1,14 @@
 package hwio
 
 // A mock driver used for unit testing.
-import(
+import (
 	"fmt"
 )
 
 type TestDriver struct {
-	pinModes map[Pin] PinIOMode 
-	pinValues map[Pin] int
-	verbose bool
+	pinModes  map[Pin]PinIOMode
+	pinValues map[Pin]int
+	verbose   bool
 }
 
 func (d *TestDriver) Init() error {
@@ -59,11 +59,11 @@ func (d *TestDriver) AnalogRead(pin Pin) (value int, e error) {
 
 // Mock has a fixed set of hardcoded pins with different capabilities
 func (d *TestDriver) PinMap() (pinMap HardwarePinMap) {
-	general := []Capability {CAP_INPUT,CAP_OUTPUT}
-	analog := []Capability {CAP_INPUT,CAP_OUTPUT,CAP_ANALOG_IN}
-	pwm := []Capability {CAP_INPUT,CAP_OUTPUT,CAP_PWM}
-	readonly := []Capability {CAP_INPUT}
-	writeonly := []Capability {CAP_OUTPUT}
+	general := []Capability{CAP_INPUT, CAP_OUTPUT}
+	analog := []Capability{CAP_INPUT, CAP_OUTPUT, CAP_ANALOG_IN}
+	pwm := []Capability{CAP_INPUT, CAP_OUTPUT, CAP_PWM}
+	readonly := []Capability{CAP_INPUT}
+	writeonly := []Capability{CAP_OUTPUT}
 
 	pinMap = make(HardwarePinMap)
 
@@ -80,16 +80,16 @@ func (d *TestDriver) PinMap() (pinMap HardwarePinMap) {
 
 // Getter that gets the pinModes map on demand, and creating it on first
 // instance. 
-func (d *TestDriver) getPinModes() map[Pin] PinIOMode {
+func (d *TestDriver) getPinModes() map[Pin]PinIOMode {
 	if d.pinModes == nil {
-		d.pinModes = make(map[Pin] PinIOMode)
+		d.pinModes = make(map[Pin]PinIOMode)
 	}
 	return d.pinModes
 }
 
-func (d *TestDriver) getPinValues() map[Pin] int {
+func (d *TestDriver) getPinValues() map[Pin]int {
 	if d.pinValues == nil {
-		d.pinValues = make(map[Pin] int)
+		d.pinValues = make(map[Pin]int)
 	}
 	return d.pinValues
 }

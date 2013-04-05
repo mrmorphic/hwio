@@ -6,9 +6,9 @@
 package main
 
 import (
+	"fmt"
 	"hwio"
 	"os"
-	"fmt"
 )
 
 func main() {
@@ -39,4 +39,3 @@ func main() {
 		hwio.Delay(1000)
 	}
 }
-

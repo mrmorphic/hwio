@@ -4,8 +4,8 @@ package main
 // Implements a continuous 8-bit binary counter.
 
 import (
-	"hwio"
 	"fmt"
+	"hwio"
 )
 
 func main() {
@@ -55,11 +55,10 @@ func main() {
 			clockData(gsclkPin)
 		}
 
-//		hwio.Delay(100)
+		//		hwio.Delay(100)
 	}
 
-
-//		hwio.ShiftOut(dataPin, clockPin, uint(data), hwio.MSBFIRST)
+	//		hwio.ShiftOut(dataPin, clockPin, uint(data), hwio.MSBFIRST)
 }
 
 // val is a 12-bit int
@@ -89,9 +88,8 @@ func writeData(val uint, sinPin hwio.Pin, sclkPin hwio.Pin, xlatPin hwio.Pin) {
 }
 
 func clockData(gsclkPin hwio.Pin) {
-	for g :=0; g < 4096; g++ {
+	for g := 0; g < 4096; g++ {
 		hwio.DigitalWrite(gsclkPin, hwio.HIGH)
 		hwio.DigitalWrite(gsclkPin, hwio.LOW)
 	}
 }
-

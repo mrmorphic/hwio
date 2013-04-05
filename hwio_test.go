@@ -4,8 +4,8 @@ package hwio
 // same uninitialised state,
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 // Get the driver's pin map and check for the pins in it. Tests that the
@@ -18,7 +18,7 @@ func TestPinMap(t *testing.T) {
 	// P0 should exist
 	p0 := m.GetPin(0)
 	if p0 == nil {
-		 t.Error("Pin 0 is expected to be defined")
+		t.Error("Pin 0 is expected to be defined")
 	}
 
 	// P9 should not exist

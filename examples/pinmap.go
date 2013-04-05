@@ -13,4 +13,3 @@ import (
 func main() {
 	hwio.DebugPinMap()
 }
-

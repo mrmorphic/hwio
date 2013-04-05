@@ -26,9 +26,9 @@ package hwio
 // @todo Implement PWM
 
 import (
+	"errors"
 	"os"
 	"syscall"
-	"errors"
 	"unsafe"
 )
 
@@ -38,15 +38,15 @@ type RaspberryPiPin struct {
 	profile   []Capability
 	gpioName  string // This is used for a human readable name
 	funcReg   uint
-    funcShift uint
-	bit       uint   // A single bit in the position of the I/O value on the port
+	funcShift uint
+	bit       uint // A single bit in the position of the I/O value on the port
 }
 
 func (p RaspberryPiPin) GetName() string {
 	return p.gpioName
 }
 
-func makePiPin(hwPin string, profile []Capability, gpioName string, funcReg uint, funcShift uint, bit uint) (* RaspberryPiPin) {
+func makePiPin(hwPin string, profile []Capability, gpioName string, funcReg uint, funcShift uint, bit uint) *RaspberryPiPin {
 	return &RaspberryPiPin{hwPin, profile, gpioName, funcReg, funcShift, bit}
 }
 
@@ -56,17 +56,17 @@ var piUnusedProfile []Capability
 
 const (
 	PI_BCM2708_PERI_BASE = 0x20000000
-	PI_GPIO_BASE = PI_BCM2708_PERI_BASE + 0x200000
+	PI_GPIO_BASE         = PI_BCM2708_PERI_BASE + 0x200000
 	// CLOCK_BASE = BCM2708_PERI_BASE + 0x101000
 	// GPIO_PWM = BCM2708_PERI_BASE + 0x20C000
 
-	PI_PAGE_SIZE = 4*1024
-	PI_BLOCK_SIZE = 4*1024
+	PI_PAGE_SIZE  = 4 * 1024
+	PI_BLOCK_SIZE = 4 * 1024
 
 	// number of 32-bit values in the gpio mmap
 	PI_GPIO_MMAP_N_UINT32 = 1024
 
-	PI_GPIO_PORT0_SET_REG = 7
+	PI_GPIO_PORT0_SET_REG   = 7
 	PI_GPIO_PORT0_CLEAR_REG = 10
 
 	PI_GPIO_PORT0_INPUT_LEVEL = 13
@@ -76,13 +76,13 @@ const (
 	PI_FUNC_REG_2 = 2
 
 	// registers for pull up/down
-	PI_GPPUD = 37
+	PI_GPPUD     = 37
 	PI_GPPUDCLK0 = 38
 
 	// values for pull up/down
-	PI_PUD_DISABLE = 0
+	PI_PUD_DISABLE         = 0
 	PI_PUD_PULLDOWN_ENABLE = 1
-	PI_PUD_PULLUP_ENABLE = 2
+	PI_PUD_PULLUP_ENABLE   = 2
 )
 
 func init() {
@@ -92,8 +92,7 @@ func init() {
 		CAP_INPUT_PULLUP,
 		CAP_INPUT_PULLDOWN,
 	}
-	piUnusedProfile = []Capability {
-	}
+	piUnusedProfile = []Capability{}
 
 	// The pins are numbered as they are on the connector. This means introducing
 	// artificial pins for things like power, to keep the numbering.
@@ -101,30 +100,30 @@ func init() {
 		makePiPin("NULL", piUnusedProfile, "", 0, 0, 0), // 0 - spacer
 		makePiPin("3.3V", piUnusedProfile, "", 0, 0, 0),
 		makePiPin("5V", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("SDA", piGpioProfile, "GPIO0", PI_FUNC_REG_0, 0, 1 << 0), //also gpio
+		makePiPin("SDA", piGpioProfile, "GPIO0", PI_FUNC_REG_0, 0, 1<<0), //also gpio
 		makePiPin("DONOTCONNECT1", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("SCL", piGpioProfile, "GPIO1", PI_FUNC_REG_0, 3, 1 << 1), // also gpio
+		makePiPin("SCL", piGpioProfile, "GPIO1", PI_FUNC_REG_0, 3, 1<<1), // also gpio
 		makePiPin("GROUND", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("GPIO4", piGpioProfile, "GPIO4", PI_FUNC_REG_0, 12, 1 << 4),
-		makePiPin("TXD", piGpioProfile, "GPIO14", PI_FUNC_REG_1, 12, 1 << 14),
+		makePiPin("GPIO4", piGpioProfile, "GPIO4", PI_FUNC_REG_0, 12, 1<<4),
+		makePiPin("TXD", piGpioProfile, "GPIO14", PI_FUNC_REG_1, 12, 1<<14),
 		makePiPin("DONOTCONNECT2", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("RXD", piGpioProfile, "GPIO15", PI_FUNC_REG_1, 15, 1 << 15),
-		makePiPin("GPIO17", piGpioProfile, "GPIO17", PI_FUNC_REG_1, 21, 1 << 17),
-		makePiPin("GPIO18", piGpioProfile, "GPIO18", PI_FUNC_REG_1, 24, 1 << 18), // also supports PWM
-		makePiPin("GPIO21", piGpioProfile, "GPIO21", PI_FUNC_REG_2, 3, 1 << 21),
+		makePiPin("RXD", piGpioProfile, "GPIO15", PI_FUNC_REG_1, 15, 1<<15),
+		makePiPin("GPIO17", piGpioProfile, "GPIO17", PI_FUNC_REG_1, 21, 1<<17),
+		makePiPin("GPIO18", piGpioProfile, "GPIO18", PI_FUNC_REG_1, 24, 1<<18), // also supports PWM
+		makePiPin("GPIO21", piGpioProfile, "GPIO21", PI_FUNC_REG_2, 3, 1<<21),
 		makePiPin("DONOTCONNECT3", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("GPIO22", piGpioProfile, "GPIO22", PI_FUNC_REG_2, 6, 1 << 22),
-		makePiPin("GPIO23", piGpioProfile, "GPIO23", PI_FUNC_REG_2, 9, 1 << 23),
+		makePiPin("GPIO22", piGpioProfile, "GPIO22", PI_FUNC_REG_2, 6, 1<<22),
+		makePiPin("GPIO23", piGpioProfile, "GPIO23", PI_FUNC_REG_2, 9, 1<<23),
 		makePiPin("DONOTCONNECT4", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("GPIO24", piGpioProfile, "GPIO24", PI_FUNC_REG_2, 12, 1 << 24),
-		makePiPin("MOSI", piGpioProfile, "GPIO10", PI_FUNC_REG_1, 0, 1 << 10),
+		makePiPin("GPIO24", piGpioProfile, "GPIO24", PI_FUNC_REG_2, 12, 1<<24),
+		makePiPin("MOSI", piGpioProfile, "GPIO10", PI_FUNC_REG_1, 0, 1<<10),
 		makePiPin("DONOTCONNECT5", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("MISO", piGpioProfile, "GPIO9", PI_FUNC_REG_0, 27, 1 << 9),
-		makePiPin("GPIO25", piGpioProfile, "GPIO25", PI_FUNC_REG_2, 15, 1 << 25),
-		makePiPin("SCLK", piGpioProfile, "GPIO11", PI_FUNC_REG_1, 3, 1 << 11),
-		makePiPin("CE0N", piGpioProfile, "GPIO8", PI_FUNC_REG_0, 24, 1 << 8),
+		makePiPin("MISO", piGpioProfile, "GPIO9", PI_FUNC_REG_0, 27, 1<<9),
+		makePiPin("GPIO25", piGpioProfile, "GPIO25", PI_FUNC_REG_2, 15, 1<<25),
+		makePiPin("SCLK", piGpioProfile, "GPIO11", PI_FUNC_REG_1, 3, 1<<11),
+		makePiPin("CE0N", piGpioProfile, "GPIO8", PI_FUNC_REG_0, 24, 1<<8),
 		makePiPin("DONOTCONNECT6", piUnusedProfile, "", 0, 0, 0),
-		makePiPin("CE1N", piGpioProfile, "GPIO7", PI_FUNC_REG_0, 21, 1 << 7),
+		makePiPin("CE1N", piGpioProfile, "GPIO7", PI_FUNC_REG_0, 21, 1<<7),
 	}
 	piPins = p
 }
@@ -138,7 +137,7 @@ type RaspberryPiDriver struct {
 
 func (d *RaspberryPiDriver) Init() error {
 	// Set up the memory mapped file giving us access to hardware registers
-	file, e := os.OpenFile("/dev/mem", os.O_RDWR|os.O_APPEND|os.O_SYNC, 0)
+	file, e := os.OpenFile("/dev/mem", os.O_RDWR|os.O_APPEND, 0)
 	if e != nil {
 		return e
 	}
@@ -147,65 +146,65 @@ func (d *RaspberryPiDriver) Init() error {
 		return e
 	}
 	d.gpioMmap = mmap
-	d.gpioMem = (*[PI_GPIO_MMAP_N_UINT32] uint) (unsafe.Pointer(&mmap[0]))
+	d.gpioMem = (*[PI_GPIO_MMAP_N_UINT32]uint)(unsafe.Pointer(&mmap[0]))
 
 	return nil
 
-/*
-int wiringPiSetup (void)
-{
-  int      fd ;
-  uint8_t *gpioMem, *pwmMem, *clkMem ;
-  struct timeval tv ;
+	/*
+	int wiringPiSetup (void)
+	{
+	  int      fd ;
+	  uint8_t *gpioMem, *pwmMem, *clkMem ;
+	  struct timeval tv ;
 
-// Open the master /dev/memory device
+	// Open the master /dev/memory device
 
-  if ((fd = open ("/dev/mem", O_RDWR | O_SYNC) ) < 0)
-  {
-    fprintf (stderr, "wiringPiSetup: Unable to open /dev/mem: %s\n", strerror (errno)) ;
-    return -1 ;
-  }
+	  if ((fd = open ("/dev/mem", O_RDWR | O_SYNC) ) < 0)
+	  {
+	    fprintf (stderr, "wiringPiSetup: Unable to open /dev/mem: %s\n", strerror (errno)) ;
+	    return -1 ;
+	  }
 
-// PWM
+	// PWM
 
-  if ((pwmMem = malloc (BLOCK_SIZE + (PAGE_SIZE-1))) == NULL)
-  {
-    fprintf (stderr, "wiringPiSetup: pwmMem malloc failed: %s\n", strerror (errno)) ;
-    return -1 ;
-  }
+	  if ((pwmMem = malloc (BLOCK_SIZE + (PAGE_SIZE-1))) == NULL)
+	  {
+	    fprintf (stderr, "wiringPiSetup: pwmMem malloc failed: %s\n", strerror (errno)) ;
+	    return -1 ;
+	  }
 
-  if (((uint32_t)pwmMem % PAGE_SIZE) != 0)
-    pwmMem += PAGE_SIZE - ((uint32_t)pwmMem % PAGE_SIZE) ;
+	  if (((uint32_t)pwmMem % PAGE_SIZE) != 0)
+	    pwmMem += PAGE_SIZE - ((uint32_t)pwmMem % PAGE_SIZE) ;
 
-  pwm = (uint32_t *)mmap(pwmMem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, fd, GPIO_PWM) ;
+	  pwm = (uint32_t *)mmap(pwmMem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, fd, GPIO_PWM) ;
 
-  if ((int32_t)pwm < 0)
-  {
-    fprintf (stderr, "wiringPiSetup: mmap failed (pwm): %s\n", strerror (errno)) ;
-    return -1 ;
-  }
- 
-// Clock control (needed for PWM)
+	  if ((int32_t)pwm < 0)
+	  {
+	    fprintf (stderr, "wiringPiSetup: mmap failed (pwm): %s\n", strerror (errno)) ;
+	    return -1 ;
+	  }
 
-  if ((clkMem = malloc (BLOCK_SIZE + (PAGE_SIZE-1))) == NULL)
-  {
-    fprintf (stderr, "wiringPiSetup: clkMem malloc failed: %s\n", strerror (errno)) ;
-    return -1 ;
-  }
+	// Clock control (needed for PWM)
 
-  if (((uint32_t)clkMem % PAGE_SIZE) != 0)
-    clkMem += PAGE_SIZE - ((uint32_t)clkMem % PAGE_SIZE) ;
+	  if ((clkMem = malloc (BLOCK_SIZE + (PAGE_SIZE-1))) == NULL)
+	  {
+	    fprintf (stderr, "wiringPiSetup: clkMem malloc failed: %s\n", strerror (errno)) ;
+	    return -1 ;
+	  }
 
-  clk = (uint32_t *)mmap(clkMem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, fd, CLOCK_BASE) ;
+	  if (((uint32_t)clkMem % PAGE_SIZE) != 0)
+	    clkMem += PAGE_SIZE - ((uint32_t)clkMem % PAGE_SIZE) ;
 
-  if ((int32_t)clk < 0)
-  {
-    fprintf (stderr, "wiringPiSetup: mmap failed (clk): %s\n", strerror (errno)) ;
-    return -1 ;
-  }
- 
-}
-*/
+	  clk = (uint32_t *)mmap(clkMem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, fd, CLOCK_BASE) ;
+
+	  if ((int32_t)clk < 0)
+	  {
+	    fprintf (stderr, "wiringPiSetup: mmap failed (clk): %s\n", strerror (errno)) ;
+	    return -1 ;
+	  }
+
+	}
+	*/
 }
 
 func (d *RaspberryPiDriver) Close() {
@@ -241,60 +240,60 @@ func (d *RaspberryPiDriver) PinMode(pin Pin, mode PinIOMode) error {
 	}
 	return nil
 
-/*
-void pinModeGpio (int pin, int mode)
-{
-  static int pwmRunning  = FALSE ;
-  int fSel, shift, alt ;
+	/*
+	void pinModeGpio (int pin, int mode)
+	{
+	  static int pwmRunning  = FALSE ;
+	  int fSel, shift, alt ;
 
-  pin &= 63 ;
+	  pin &= 63 ;
 
-  fSel    = gpioToGPFSEL [pin] ;
-  shift   = gpioToShift  [pin] ;
+	  fSel    = gpioToGPFSEL [pin] ;
+	  shift   = gpioToShift  [pin] ;
 
-  if (mode == INPUT)
-    *(gpio + fSel) = (*(gpio + fSel) & ~(7 << shift)) ; // Sets bits to zero = input
-  else if (mode == OUTPUT)
-    *(gpio + fSel) = (*(gpio + fSel) & ~(7 << shift)) | (1 << shift) ;
-  else if (mode == PWM_OUTPUT)
-  {
-    if ((alt = gpioToPwmALT [pin]) == 0)	// Not a PWM pin
-      return ;
+	  if (mode == INPUT)
+	    *(gpio + fSel) = (*(gpio + fSel) & ~(7 << shift)) ; // Sets bits to zero = input
+	  else if (mode == OUTPUT)
+	    *(gpio + fSel) = (*(gpio + fSel) & ~(7 << shift)) | (1 << shift) ;
+	  else if (mode == PWM_OUTPUT)
+	  {
+	    if ((alt = gpioToPwmALT [pin]) == 0)	// Not a PWM pin
+	      return ;
 
-// Set pin to PWM mode
+	// Set pin to PWM mode
 
-    *(gpio + fSel) = (*(gpio + fSel) & ~(7 << shift)) | (alt << shift) ;
+	    *(gpio + fSel) = (*(gpio + fSel) & ~(7 << shift)) | (alt << shift) ;
 
-// We didn't initialise the PWM hardware at setup time - because it's possible that
-//	something else is using the PWM - e.g. the Audio systems! So if we use PWM
-//	here, then we're assuming that nothing else is, otherwise things are going
-//	to sound a bit funny...
+	// We didn't initialise the PWM hardware at setup time - because it's possible that
+	//	something else is using the PWM - e.g. the Audio systems! So if we use PWM
+	//	here, then we're assuming that nothing else is, otherwise things are going
+	//	to sound a bit funny...
 
-    if (!pwmRunning)
-    {
+	    if (!pwmRunning)
+	    {
 
-//	Gert/Doms Values
-      *(clk + PWMCLK_DIV)  = 0x5A000000 | (32<<12) ;	// set pwm div to 32 (19.2/3 = 600KHz)
-      *(clk + PWMCLK_CNTL) = 0x5A000011 ;		// Source=osc and enable
-      digitalWrite (pin, LOW) ;
-      *(pwm + PWM_CONTROL) = 0 ;			// Disable PWM
-      delayMicroseconds (10) ;
-      *(pwm + PWM0_RANGE) = 0x400 ;
-      delayMicroseconds (10) ;
-      *(pwm + PWM1_RANGE) = 0x400 ;
-      delayMicroseconds (10) ;
+	//	Gert/Doms Values
+	      *(clk + PWMCLK_DIV)  = 0x5A000000 | (32<<12) ;	// set pwm div to 32 (19.2/3 = 600KHz)
+	      *(clk + PWMCLK_CNTL) = 0x5A000011 ;		// Source=osc and enable
+	      digitalWrite (pin, LOW) ;
+	      *(pwm + PWM_CONTROL) = 0 ;			// Disable PWM
+	      delayMicroseconds (10) ;
+	      *(pwm + PWM0_RANGE) = 0x400 ;
+	      delayMicroseconds (10) ;
+	      *(pwm + PWM1_RANGE) = 0x400 ;
+	      delayMicroseconds (10) ;
 
-// Enable PWMs
+	// Enable PWMs
 
-      *(pwm + PWM0_DATA) = 512 ;
-      *(pwm + PWM1_DATA) = 512 ;
+	      *(pwm + PWM0_DATA) = 512 ;
+	      *(pwm + PWM1_DATA) = 512 ;
 
-      *(pwm + PWM_CONTROL) = PWM0_ENABLE | PWM1_ENABLE ;
-    }
+	      *(pwm + PWM_CONTROL) = PWM0_ENABLE | PWM1_ENABLE ;
+	    }
 
-  }
+	  }
 
-*/
+	*/
 }
 
 func (d *RaspberryPiDriver) DigitalWrite(pin Pin, value int) (e error) {
@@ -318,17 +317,16 @@ func (d *RaspberryPiDriver) DigitalRead(pin Pin) (value int, e error) {
 
 func (d *RaspberryPiDriver) AnalogWrite(pin Pin, value int) (e error) {
 	return nil
-/*void pwmWriteWPi (int pin, int value)
-{
-  int port, gpioPin ;
+	/*void pwmWriteWPi (int pin, int value)
+	{
+	  int port, gpioPin ;
 
-  gpioPin = pinToGpio [pin & 63] ;
-  port    = gpioToPwmPort [gpioPin] ;
+	  gpioPin = pinToGpio [pin & 63] ;
+	  port    = gpioToPwmPort [gpioPin] ;
 
-  *(pwm + port) = value & 0x3FF ;
-}*/
+	  *(pwm + port) = value & 0x3FF ;
+	}*/
 }
-
 
 func (d *RaspberryPiDriver) AnalogRead(pin Pin) (value int, e error) {
 	return 0, errors.New("Analog input is not supported")
@@ -428,4 +426,3 @@ int waitForInterruptWPi (int pin, int mS)
 }
 
 *****/
-
