@@ -383,7 +383,7 @@ func (d *BeagleBoneDriver) Init() error {
 	//	} 
     
 	// Set up the memory mapped file giving us access to hardware registers
-	file, e := os.OpenFile("/dev/mem", os.O_RDWR|os.O_APPEND, 0)
+	file, e := os.OpenFile("/dev/mem", os.O_RDWR|os.O_APPEND|os.O_SYNC, 0)
 	if e != nil {
 		return e
 	}
