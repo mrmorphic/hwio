@@ -7,6 +7,7 @@ package hwio
 import (
 	"errors"
 	"fmt"
+    "os"
 	"os/exec"
 	"strings"
 	"time"
@@ -68,7 +69,15 @@ func determineDriver() {
 		SetDriver(new(BeagleBoneDriver))
 	} else if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") {
 		SetDriver(new(RaspberryPiDriver))
-	}
+	} else {
+        file, e := os.Open("/etc/rpi-issue") // test for existence (only)
+        if e == nil {
+            file.Close()
+            SetDriver(new(RaspberryPiDriver))
+        } else {
+            fmt.Printf("Unable to select a suitable driver for this board.\n%s\n", s)
+        }
+    }
 }
 
 // Check if the driver is assigned. If not, return an error to indicate that,
