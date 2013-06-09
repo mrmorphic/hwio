@@ -11,11 +11,6 @@ package hwio
 //   pulled-up. i.e. pull-down setting appears to be ignored.
 // - must be run as root, so it has permissions to create mmap
 //
-// WARNINGS:
-// - THIS IS STILL UNDER DEVELOPMENT
-// - UNTESTED FEATURES MAY FRY YOUR BOARD
-// - ANY CHANGES YOU MAKE TO THIS MAY FRY YOUR BOARD
-// Don't say you weren't warned.
 // Developed and tested against Occidental0.2, adafruit's distribution.
 //
 // References:

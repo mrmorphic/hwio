@@ -39,11 +39,53 @@ REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
  *	Currently it is limited to GPIO on BeagleBone and Raspberry Pi.
  *	Only GPIO is tested. Negative interactions with other system functions
 	is not tested.
- *	**IT MAY FRY YOUR BOARD**
- *	**IF YOU CHANGE IT, OR LOOK AT IT THE WRONG WAY, IT MAY FRY YOUR BOARD**
- *	I DON'T WANT PEOPLE GETTING ANGRY WITH ME IF THIS CODE FRIES THEIR BOARD.
  *	If you don't want to risk frying your board, you can still run the
  	unit tests ;-)
+
+
+## Board Support
+
+Currently there are 3 drivers:
+
+  *	BeagleBoneFSDriver - for BeagleBone boards running linux kernel 3.8 or higher, including
+  	BeagleBone black
+  *	BeagleBoneDriver - for BeagleBone boards running older SRM kernels (pre-device tree)
+  *	RaspberryPiDriver - for Raspberry Pi
+
+### BeagleBoneFSDriver
+
+This driver accesses hardware via the device interfaces exposed in the file system on linux kernels 3.8 or higher, where
+device tree is mandated. This should be a robust driver as the hardware access is maintained by device driver authors,
+but is likely to be not as fast as direct memory I/O to the hardware as there is file system overhead.
+
+Status:
+
+  * In development
+  * New driver, as yet untested
+
+
+### BeagleBoneDriver
+
+This driver accesses hardware directly using memory mapped I/O. It will only work on older SRM kernals (pre 3.8). It is generally
+pretty quick as all non-setup functions access devices directly.
+
+This driver is deprecated in favour of BeagleBoneFSDriver, as it is only useful for older kernels. Also, I don't have a BeagleBone with the older
+kernel for testing any more, so I'm not in a position to test changes to this driver.
+
+Status:
+
+  * Alpha
+  *	GPIO on all pins known to work for output and all input modes (pull variations)
+
+
+### RaspberryPiDriver
+
+This driver accesses hardware directly using memory mapped I.O.
+
+Status:
+
+  * Beta
+  * GPIO on all pins known to work for input and output
 
 
 ## How it Works
