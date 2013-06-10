@@ -61,7 +61,10 @@ but is likely to be not as fast as direct memory I/O to the hardware as there is
 Status:
 
   * In development
-  * New driver, as yet untested
+  * New driver, not yet properly untested
+  * Some GPIOs are known to work on writes, unknown on reads
+  * USR0-USR3 don't work and cannot be accessed as GPIO, as the LED driver reserves them.
+  * Analog not yet supported
 
 
 ### BeagleBoneDriver
