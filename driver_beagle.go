@@ -58,7 +58,7 @@ var BB_logicalPorts = [4]uint{BB_GPIO0, BB_GPIO1, BB_GPIO2, BB_GPIO3}
 func makeBeaglePin(hwPin string, profile []Capability, gpioName string, gpioLogicalPort int, gpioPinOnPort int, mode0Name string, adcEnable uint) *BeaglePin {
 	//			makeBeaglePin("P8.3", bbGpioProfile, "GPIO1_6", BB_GPIO1, 1<<6, "gpmc_ad6", 0, 38),
 	port := BB_logicalPorts[gpioLogicalPort]
-	return &BeaglePin{hwPin, profile, gpioName, port, 1 << uint(gpioPinOnPort), mode0Name, adcEnable, port + BB_GPIO_SETDATAOUT, port + BB_GPIO_CLEARDATAOUT, gpioLogicalPort + gpioPinOnPort}
+	return &BeaglePin{hwPin, profile, gpioName, port, 1 << uint(gpioPinOnPort), mode0Name, adcEnable, port + BB_GPIO_SETDATAOUT, port + BB_GPIO_CLEARDATAOUT, gpioLogicalPort*32 + gpioPinOnPort}
 }
 
 const (
