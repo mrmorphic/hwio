@@ -24,7 +24,6 @@ import (
 	"os"
 	"strconv"
 	"syscall"
-	"time"
 	"unsafe"
 )
 
