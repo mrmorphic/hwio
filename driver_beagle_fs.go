@@ -133,7 +133,13 @@ func (d *BeagleBoneFSDriver) Init() error {
 }
 
 func (d *BeagleBoneFSDriver) Close() {
-	// @todo call unexport on all open pins
+	// close all value files now we're finished with them.
+	// @todo how do we unexport the pins?
+	for _, open := range d.openPins {
+		if open.valueFile != nil {
+			open.valueFile.Close()
+		}
+	}
 }
 
 // create an openPin object and put it in the map.
