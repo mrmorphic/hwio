@@ -695,45 +695,45 @@ func (d *BeagleBoneDriver) PinMap() (pinMap HardwarePinMap) {
 // Serial5 = _UART_PORT('UART5')
 
 func (d *BeagleBoneDriver) analogInit() {
-	// """ Initializes the on-board 8ch 12bit ADC. """
-	// # Enable ADC module clock, though should already be enabled on
-	// # newer Angstrom images:
-	d.setRegL(BB_CM_WKUP_ADC_TSC_CLKCTRL, BB_MODULEMODE_ENABLE)
-	// _setReg(CM_WKUP_ADC_TSC_CLKCTRL, MODULEMODE_ENABLE)
-	// # Wait for enable complete:
-	for d.getRegL(BB_CM_WKUP_ADC_TSC_CLKCTRL)&BB_IDLEST_MASK != 0 {
-		time.Sleep(100 * time.Microsecond)
-	}
-	// while (_getReg(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK): time.sleep(0.1)
+	// // """ Initializes the on-board 8ch 12bit ADC. """
+	// // # Enable ADC module clock, though should already be enabled on
+	// // # newer Angstrom images:
+	// d.setRegL(BB_CM_WKUP_ADC_TSC_CLKCTRL, BB_MODULEMODE_ENABLE)
+	// // _setReg(CM_WKUP_ADC_TSC_CLKCTRL, MODULEMODE_ENABLE)
+	// // # Wait for enable complete:
+	// for d.getRegL(BB_CM_WKUP_ADC_TSC_CLKCTRL)&BB_IDLEST_MASK != 0 {
+	// 	time.Sleep(100 * time.Microsecond)
+	// }
+	// // while (_getReg(CM_WKUP_ADC_TSC_CLKCTRL) & IDLEST_MASK): time.sleep(0.1)
 
-	// # Software reset:
-	d.setRegL(BB_ADC_SYSCONFIG, BB_ADC_SOFTRESET)
-	// _setReg(ADC_SYSCONFIG, ADC_SOFTRESET)
-	for d.getRegL(BB_ADC_SYSCONFIG)&BB_ADC_SOFTRESET != 0 {
-	}
-	// while(_getReg(ADC_SYSCONFIG) & ADC_SOFTRESET): pass
+	// // # Software reset:
+	// d.setRegL(BB_ADC_SYSCONFIG, BB_ADC_SOFTRESET)
+	// // _setReg(ADC_SYSCONFIG, ADC_SOFTRESET)
+	// for d.getRegL(BB_ADC_SYSCONFIG)&BB_ADC_SOFTRESET != 0 {
+	// }
+	// // while(_getReg(ADC_SYSCONFIG) & ADC_SOFTRESET): pass
 
-	// # Make sure STEPCONFIG write protect is off:
-	d.setRegL(BB_ADC_CTRL, BB_ADC_STEPCONFIG_WRITE_PROTECT_OFF)
-	// _setReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
+	// // # Make sure STEPCONFIG write protect is off:
+	// d.setRegL(BB_ADC_CTRL, BB_ADC_STEPCONFIG_WRITE_PROTECT_OFF)
+	// // _setReg(ADC_CTRL, ADC_STEPCONFIG_WRITE_PROTECT_OFF)
 
-	// # Set STEPCONFIG1-STEPCONFIG8 to correspond to ADC inputs 0-7:
-	d.setRegL(BB_ADCSTEPCONFIG1, 0<<19)
-	d.setRegL(BB_ADCSTEPCONFIG2, 1<<19)
-	d.setRegL(BB_ADCSTEPCONFIG3, 2<<19)
-	d.setRegL(BB_ADCSTEPCONFIG4, 3<<19)
-	d.setRegL(BB_ADCSTEPCONFIG5, 4<<19)
-	d.setRegL(BB_ADCSTEPCONFIG6, 5<<19)
-	d.setRegL(BB_ADCSTEPCONFIG7, 6<<19)
-	d.setRegL(BB_ADCSTEPCONFIG8, 7<<19)
+	// // # Set STEPCONFIG1-STEPCONFIG8 to correspond to ADC inputs 0-7:
+	// d.setRegL(BB_ADCSTEPCONFIG1, 0<<19)
+	// d.setRegL(BB_ADCSTEPCONFIG2, 1<<19)
+	// d.setRegL(BB_ADCSTEPCONFIG3, 2<<19)
+	// d.setRegL(BB_ADCSTEPCONFIG4, 3<<19)
+	// d.setRegL(BB_ADCSTEPCONFIG5, 4<<19)
+	// d.setRegL(BB_ADCSTEPCONFIG6, 5<<19)
+	// d.setRegL(BB_ADCSTEPCONFIG7, 6<<19)
+	// d.setRegL(BB_ADCSTEPCONFIG8, 7<<19)
 
-	// for i in xrange(8):
-	//   config = SEL_INP('AIN%i' % i)
-	//   _setReg(eval('ADCSTEPCONFIG%i' % (i+1)), config)
-	// # Now we can enable ADC subsystem, leaving write protect off:
+	// // for i in xrange(8):
+	// //   config = SEL_INP('AIN%i' % i)
+	// //   _setReg(eval('ADCSTEPCONFIG%i' % (i+1)), config)
+	// // # Now we can enable ADC subsystem, leaving write protect off:
 
-	d.orRegL(BB_ADC_CTRL, BB_TSC_ADC_SS_ENABLE)
-	// _orReg(ADC_CTRL, TSC_ADC_SS_ENABLE)
+	// d.orRegL(BB_ADC_CTRL, BB_TSC_ADC_SS_ENABLE)
+	// // _orReg(ADC_CTRL, TSC_ADC_SS_ENABLE)
 }
 
 // def _analog_cleanup():
