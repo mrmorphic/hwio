@@ -7,7 +7,7 @@ package hwio
 import (
 	"errors"
 	"fmt"
-    "os"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -53,6 +53,15 @@ func init() {
 	determineDriver()
 }
 
+func fileExists(name string) bool {
+	_, err := os.Stat(name)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
 // Work out the driver from environment if we can. If we have any problems,
 // don't generate an error, just return with the driver not set.
 // @todo use reflection to determine all implementors of the driver interface, and
@@ -66,18 +75,22 @@ func determineDriver() {
 
 	s := string(uname)
 	if strings.Contains(s, "beaglebone") {
-		SetDriver(new(BeagleBoneDriver))
+		if fileExists("/sys/kernel/debug/omap_mux") {
+			SetDriver(new(BeagleBoneDriver))
+		} else {
+			SetDriver(new(BeagleBoneFSDriver))
+		}
 	} else if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") {
 		SetDriver(new(RaspberryPiDriver))
 	} else {
-        file, e := os.Open("/etc/rpi-issue") // test for existence (only)
-        if e == nil {
-            file.Close()
-            SetDriver(new(RaspberryPiDriver))
-        } else {
-            fmt.Printf("Unable to select a suitable driver for this board.\n%s\n", s)
-        }
-    }
+		file, e := os.Open("/etc/rpi-issue") // test for existence (only)
+		if e == nil {
+			file.Close()
+			SetDriver(new(RaspberryPiDriver))
+		} else {
+			fmt.Printf("Unable to select a suitable driver for this board.\n%s\n", s)
+		}
+	}
 }
 
 // Check if the driver is assigned. If not, return an error to indicate that,
