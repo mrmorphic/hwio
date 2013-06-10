@@ -27,13 +27,6 @@ import (
 	"strconv"
 )
 
-const ()
-
-// var beaglePins []*BeaglePin
-// var bbGpioProfile []Capability
-// var bbAnalogInProfile []Capability
-// var bbUsrLedProfile []Capability
-
 type BeagleBoneFSOpenPin struct {
 	pin          Pin
 	gpioLogical  int
@@ -43,6 +36,7 @@ type BeagleBoneFSOpenPin struct {
 
 // Write a string to a file and close it again.
 func writeStringToFile(filename string, value string) error {
+	//	fmt.Printf("writing %s to file %s\n", value, filename)
 	f, e := os.OpenFile(filename, os.O_WRONLY|os.O_TRUNC, 0666)
 	if e != nil {
 		return e
@@ -79,11 +73,11 @@ func (op *BeagleBoneFSOpenPin) gpioDirection(dir string) error {
 		mode = os.O_RDONLY
 	}
 
-	// @todo open the value file with the correct mode. Put that file in 'op'
-	op.valueFile, e = os.OpenFile(op.gpioBaseName+"/"+strconv.Itoa(op.gpioLogical), mode, 0666)
-	if e != nil {
-		return e
-	}
+	// open the value file with the correct mode. Put that file in 'op'. Note that we keep this file open
+	// continuously for performance.
+	// Preliminary tests on 200,000 DigitalWrites indicate an order of magnitude improvement when we don't have
+	// to re-open the file each time. Re-seeking and writing a new value suffices.
+	op.valueFile, e = os.OpenFile(op.gpioBaseName+"/value", mode, 0666)
 
 	return e
 }
@@ -163,6 +157,7 @@ func (d *BeagleBoneFSDriver) PinMode(pin Pin, mode PinIOMode) error {
 	}
 
 	if mode == OUTPUT {
+		fmt.Printf("about to set pin %d to output\n", pin)
 		e = openPin.gpioDirection("out")
 		if e != nil {
 			return e
@@ -184,25 +179,11 @@ func (d *BeagleBoneFSDriver) PinMode(pin Pin, mode PinIOMode) error {
 	return nil
 }
 
-func (d *BeagleBoneFSDriver) pinMux(mux string, mode uint) error {
-	// Uses kernel omap_mux files to set pin modes.
-	// There's no simple way to write the control module registers from a 
-	// user-level process because it lacks the proper privileges, but it's 
-	// easy enough to just use the built-in file-based system and let the 
-	// kernel do the work. 
-	f, e := os.OpenFile(BB_PINMUX_PATH+mux, os.O_WRONLY|os.O_TRUNC, 0666)
-	if e != nil {
-		return e
-	}
-
-	s := strconv.FormatInt(int64(mode), 16)
-	//	fmt.Printf("Writing mode %s to mux file %s\n", s, PINMUX_PATH+mux)
-	f.WriteString(s)
-	return nil
-}
-
 func (d *BeagleBoneFSDriver) DigitalWrite(pin Pin, value int) (e error) {
 	openPin := d.openPins[pin]
+	if openPin == nil {
+		return errors.New("Pin is being written but has not been opened")
+	}
 	openPin.gpioSetValue(value)
 	return nil
 }
