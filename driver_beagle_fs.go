@@ -100,16 +100,26 @@ func (op *BeagleBoneFSOpenPin) gpioGetValue() (int, error) {
 
 // Set the value, Expects HIGH or LOW
 func (op *BeagleBoneFSOpenPin) gpioSetValue(value int) error {
+	if op.valueFile == nil {
+		fmt.Printf("value file no set\n")
+		return errors.New("value file is not defined")
+	}
+
+	// Seek the start of the value file before writing. This is sufficient for the driver to accept a new value.
 	_, e := op.valueFile.Seek(0, 0)
 	if e != nil {
 		return e
 	}
 
+	// Write a 1 or 0.
+	// @todo investigate if we'd get better performance if we have precalculated []byte values with 0 and 1, and
+	// use write directly instead of WriteString. Probably only marginal.
 	if value == 0 {
 		op.valueFile.WriteString("0")
 	} else {
 		op.valueFile.WriteString("1")
 	}
+
 	return nil
 }
 
