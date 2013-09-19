@@ -11,18 +11,81 @@ on a raspberry pi, maybe only changing pin references.
 To use hwio, you just need to import it into your go project, initialise pins as
 required, and then use functions that manipulate the pins.
 
+## Basic Usage
+
 Initialising a pin looks like this:
 
 	myPin, err := hwio.GetPin("GPIO4")
 	err = hwio.PinMode(myPin, hwio.OUTPUT)
 
+Or the shorter, more convenient form:
+
+  myPin, err := GetPinWithMode("GPIO4", hwio.OUTPUT)
+
 Unlike Arduino, where the pins are directly numbered and you just use the number, in hwio
 you get the pin first, by name. This is necessary as different hardware drivers may provide
 different pins.
 
+The mode constants include:
+
+ *  INPUT - set pin to digital input
+ *  OUTPUT - set pin to digital output
+ *  INPUT_PULLUP - set pin to digital input with internal pull-up resistor (where supported by pin)
+ *  INPUT_PULLDOWN - set pin to digital input with internal pull-down resistor (where supported by pin)
+
 Writing a value to a pin looks like this:
 
 	hwio.DigitalWrite(myPin, hwio.HIGH)
+
+Read a value from a pin looks like this:
+
+  value, err := hwio.DigitalRead(myPin)
+
+## Utility Functions
+
+To do delay a number of milliseconds:
+
+  hwio.Delay(500)  // delay 500ms
+
+Or to delay by microseconds:
+
+  hwio.DelayMicroseconds(1500)  // delay 1500 usec, or 1.5 milliseconds
+
+The Arduino ShiftOut function is supported in a simplified form for 8 bits:
+
+  e := hwio.ShiftOut(dataPin, clockPin, 127, hwio.MSBFIRST)   // write 8 bits, MSB first
+
+or in a bigger variant that supports different sizes:
+
+  e := hwio.ShiftOutSize(dataPin, clockPin, someValue, hwio.LSBFIRST, 12)   // write 12 bits, LSB first
+
+Sometimes you might want to write an unsigned int to a set of digital pins (e.g. a parallel port). This can be done as
+follows:
+
+  somePins := []hwio.Pin{myPin3, myPin2, myPin1, myPin0}
+  e := hwio.WriteUIntToPins(myValue, somePins)
+
+This will write out the n lowest bits of myValue, with the most significant bit of that value written to myPin3 etc. It uses DigitalWrite
+so the outputs are not written instantaneously.
+
+MSBFIRST
+
+## Driver Selection
+
+The intention of the hwio library is to use uname to attempt to detect the platform and select an appropriate driver (see drivers section below), 
+so for some platforms this may auto-detect. However, with the variety of boards around and the variety of operation systems, you may find that autodetection
+doesn't work. If you need to set the driver automatically, you can do:
+
+  hwio.SetDriver(new(BeagleBoneFSDriver))
+
+This needs to be done before any other hwio calls.
+
+## More Advanced
+
+By default, hwio performs error checking on all operations (e.g. if you write to a pin, but have not set it to a writeable mode, it will return
+an error). However, error checking carries a minimal performance overhead. To turn this error checking off, you can:
+
+  hwio.SetErrorChecking(false)
 
 For more information about using the library, see http://stuffwemade.net/hwio which has:
 
