@@ -146,6 +146,17 @@ func GetPin(cname string) (Pin, error) {
 	return Pin(0), errors.New(fmt.Sprintf("Could not find a pin called %s", cname))
 }
 
+// Shortcut for calling GetPin and then PinMode.
+func GetPinWithMode(cname string, mode PinIOMode) (pin Pin, e error) {
+	p, e := GetPin(cname)
+	if e != nil {
+		return
+	}
+
+	e = PinMode(p, mode)
+	return p, e
+}
+
 // Set error checking. This should be called before pin assignments.
 func SetErrorChecking(check bool) {
 	errorChecking = check
