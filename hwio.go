@@ -347,6 +347,36 @@ func ShiftOutSize(dataPin Pin, clockPin Pin, value uint, order BitShiftOrder, n 
 	return nil
 }
 
+// Given an integer and a list of GPIO pins (that must have been set up as outputs), write the integer across
+// the pins. The number of bits is determined by the length of the pins. The most-significant output pin is first.
+// Bits are written MSB first.
+// Maximum number of bits that can be shifted is 32.
+// Note that the bits are not written out instantaneously, although very quickly. If you need instantaneous changing of
+// all pins, you need to consider an output buffer.
+func WriteUIntToPins(value uint32, pins []Pin) error {
+	if len(pins) > 31 {
+		return errors.New("WriteUIntToPins only supports up to 32 bits")
+	}
+
+	bit := uint32(0)
+	v := value
+	mask := uint32(1) << uint32((len(pins) - 1))
+	for i := uint32(0); i < uint32(len(pins)); i++ {
+		bit = v & mask
+		if bit != 0 {
+			bit = 1
+		}
+		v = v << 1
+		// write to data pin
+		//		fmt.Printf("Writing %s to pin %s\n", bit, pins[i])
+		e := DigitalWrite(pins[i], int(bit))
+		if e != nil {
+			return e
+		}
+	}
+	return nil
+}
+
 // def toggle(gpio_pin):
 //   """ Toggles the state of the given digital pin. """
 //   assert (gpio_pin in GPIO), "*Invalid GPIO pin: '%s'" % gpio_pin
