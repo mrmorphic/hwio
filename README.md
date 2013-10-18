@@ -32,18 +32,26 @@ The mode constants include:
  *  OUTPUT - set pin to digital output
  *  INPUT_PULLUP - set pin to digital input with internal pull-up resistor (where supported by pin)
  *  INPUT_PULLDOWN - set pin to digital input with internal pull-down resistor (where supported by pin)
+ *  INPUT_ANALOG - set pin to read analog input
 
 Writing a value to a pin looks like this:
 
 	hwio.DigitalWrite(myPin, hwio.HIGH)
 
-Read a value from a pin looks like this:
+Reading a value from a digital pin looks like this, returning a HIGH or LOW:
 
 	value, err := hwio.DigitalRead(myPin)
 
+Reading an analog value looks like this:
+
+	value, err := hwio.Analogread(somePin)
+
+Analog values are integers typically between 0-1800, which is the number of millivolts. (Note that you cannot drive analog inputs
+more than 1.8 volts on the BeagleBone, and you should use the analog voltage references it provides)
+
 ## Utility Functions
 
-To do delay a number of milliseconds:
+To delay a number of milliseconds:
 
 	hwio.Delay(500)  // delay 500ms
 
@@ -57,7 +65,7 @@ The Arduino ShiftOut function is supported in a simplified form for 8 bits:
 
 or in a bigger variant that supports different sizes:
 
-	e := hwio.ShiftOutSize(dataPin, clockPin, someValue, hwio.LSBFIRST, 12)   // write 12 bits, LSB first
+	e := hwio.ShiftOutSize(dataPin, clockPin, someValue, hwio.LSBFIRST, 12)  // write 12 bits LSB first
 
 Sometimes you might want to write an unsigned int to a set of digital pins (e.g. a parallel port). This can be done as
 follows:
@@ -122,10 +130,10 @@ but is likely to be not as fast as direct memory I/O to the hardware as there is
 Status:
 
   * In development
-  * New driver, not yet properly untested
+  * New driver, not yet fully tested but good indications it works as it is supposed to.
   * Some GPIOs are known to work on writes, unknown on reads
   * USR0-USR3 don't work and cannot be accessed as GPIO, as the LED driver reserves them.
-  * Analog not yet supported
+  * Analog reads are working
 
 
 ### BeagleBoneDriver
@@ -217,7 +225,6 @@ The caller generally works with logical pin numbers retrieved by GetPin.
 ## Things to be done
 
  *	PWM output support (BeagleBone, R-Pi)
- *	Analog input (BeagleBone)
  *	Interupts (lib, BeagleBone and R-Pi)
  *	Serial support for UART pins (lib, BeagleBone and R-Pi)
  *	SPI support; consider augmenting ShiftIn and ShiftOut to use hardware pins
