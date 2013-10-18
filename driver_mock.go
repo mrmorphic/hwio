@@ -2,6 +2,7 @@ package hwio
 
 // A mock driver used for unit testing.
 import (
+	"errors"
 	"fmt"
 )
 
@@ -54,13 +55,19 @@ func (d *TestDriver) AnalogWrite(pin Pin, value int) (e error) {
 }
 
 func (d *TestDriver) AnalogRead(pin Pin) (value int, e error) {
-	return 0, nil
+	if pin == 6 {
+		return 1, nil
+	}
+	if pin == 7 {
+		return 1000, nil
+	}
+	return 0, errors.New("analog read got error")
 }
 
 // Mock has a fixed set of hardcoded pins with different capabilities
 func (d *TestDriver) PinMap() (pinMap HardwarePinMap) {
 	general := []Capability{CAP_INPUT, CAP_OUTPUT}
-	analog := []Capability{CAP_INPUT, CAP_OUTPUT, CAP_ANALOG_IN}
+	analog := []Capability{CAP_ANALOG_IN}
 	pwm := []Capability{CAP_INPUT, CAP_OUTPUT, CAP_PWM}
 	readonly := []Capability{CAP_INPUT}
 	writeonly := []Capability{CAP_OUTPUT}
@@ -74,7 +81,8 @@ func (d *TestDriver) PinMap() (pinMap HardwarePinMap) {
 	pinMap.add(4, []string{"HWPin4"}, general)
 	pinMap.add(5, []string{"HWPin5"}, general)
 	pinMap.add(6, []string{"HWPin6"}, analog)
-	pinMap.add(7, []string{"HWPin7"}, pwm)
+	pinMap.add(7, []string{"HWPin7"}, analog)
+	pinMap.add(8, []string{"HWPin8"}, pwm)
 	return
 }
 

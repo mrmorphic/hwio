@@ -108,7 +108,32 @@ func TestAnalogWrite(t *testing.T) {
 func TestAnalogRead(t *testing.T) {
 	SetDriver(new(TestDriver))
 
-	// @todo implement TestAnalogRead
+	e := PinMode(6, INPUT_ANALOG)
+	if e != nil {
+		t.Error(fmt.Sprintf("PinMode(6) error: %s", e))
+	} else {
+		v, e := AnalogRead(6)
+		if e != nil {
+			t.Error(fmt.Sprintf("After reading from pin 6, got an unexpected error: %s", e))
+		}
+		if v != 1 {
+			t.Error(fmt.Sprintf("After reading from pin 6, did not get the expected value, got %d", v))
+		}
+	}
+
+	e = PinMode(7, INPUT_ANALOG)
+	if e != nil {
+		t.Error(fmt.Sprintf("PinMode(7) error: %s", e))
+	} else {
+		v, e := AnalogRead(7)
+		if e != nil {
+			t.Error(fmt.Sprintf("After reading from pin 7, got an unexpected error: %s", e))
+		}
+		if v != 1000 {
+			t.Error(fmt.Sprintf("After reading from pin 7, did not get the expected value, got %d", v))
+		}
+
+	}
 }
 
 func TestNoErrorCheck(t *testing.T) {

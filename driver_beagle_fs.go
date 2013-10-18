@@ -20,19 +20,39 @@ package hwio
 // Background on changes in linux kernal 3.8:
 // - https://docs.google.com/document/d/17P54kZkZO_-JtTjrFuVz-Cp_RMMg7GB_8W9JK9sLKfA/edit?hl=en&forcehl=1#heading=h.mfjmczsbv38r
 
+// Notes on analog:
+//
+// echo cape-bone-iio > /sys/devices/bone_capemgr.*/slots    ' once off
+// find /sys/ -name '*AIN*':
+// /sys/devices/ocp.2/helper.14/AIN0
+// /sys/devices/ocp.2/helper.14/AIN1
+// /sys/devices/ocp.2/helper.14/AIN2
+// /sys/devices/ocp.2/helper.14/AIN3
+// /sys/devices/ocp.2/helper.14/AIN4
+// /sys/devices/ocp.2/helper.14/AIN5
+// /sys/devices/ocp.2/helper.14/AIN6
+// /sys/devices/ocp.2/helper.14/AIN7
+
 import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 type BeagleBoneFSOpenPin struct {
 	pin          Pin
 	gpioLogical  int
 	gpioBaseName string
+	analogFile   string
+	isAnalog     bool
 	valueFile    *os.File
 }
+
+var analogInitialised bool
+var analogValueFilesPath string
 
 // Write a string to a file and close it again.
 func writeStringToFile(filename string, value string) error {
@@ -45,6 +65,19 @@ func writeStringToFile(filename string, value string) error {
 
 	f.WriteString(value)
 	return nil
+}
+
+// Given a glob pattern, return the full path of the first matching file
+func findFirstMatchingFile(glob string) (string, error) {
+	matches, e := filepath.Glob(glob)
+	if e != nil {
+		return "", e
+	}
+
+	if len(matches) >= 1 {
+		return matches[0], nil
+	}
+	return "", nil
 }
 
 // Needs to be called to allocate the GPIO pin
@@ -82,11 +115,61 @@ func (op *BeagleBoneFSOpenPin) gpioDirection(dir string) error {
 	return e
 }
 
+func (op *BeagleBoneFSOpenPin) analogOpen() error {
+	// once-off initialisation of analog
+	if !analogInitialised {
+		path, e := findFirstMatchingFile("/sys/devices/bone_capemgr.*/slots")
+		if e != nil {
+			return e
+		}
+
+		// enable analog
+		writeStringToFile(path, "cape-bone-iio")
+
+		// determine path where analog files are
+		path, e = findFirstMatchingFile("/sys/devices/ocp.*/helper.*/AIN0")
+		if e != nil {
+			return e
+		}
+		if path == "" {
+			return errors.New("Could not locate /sys/devices/ocp.*/helper.*/AIN0")
+		}
+
+		// remove AIN0 to get the path where these files are
+		analogValueFilesPath = strings.TrimSuffix(path, "AIN0")
+
+		analogInitialised = true
+	}
+
+	// Open analog input file computed from the calculated path of actual analog files and the analog pin name
+	f, e := os.OpenFile(analogValueFilesPath+op.analogFile, os.O_RDONLY, 0666)
+	op.valueFile = f
+
+	return e
+}
+
+func (op *BeagleBoneFSOpenPin) analogGetValue() (int, error) {
+	var b []byte
+	b = make([]byte, 5)
+	n, e := op.valueFile.ReadAt(b, 0)
+
+	// if there's an error and no byte were read, quit now. If we didn't get all the bytes we asked for, which
+	// is generally the case, we will get an error as well but would have got some bytes.
+	if e != nil && n == 0 {
+		return 0, e
+	}
+
+	value, e := strconv.Atoi(string(b[:n-1]))
+
+	return value, e
+}
+
 // Get the value. Will return HIGH or LOW
 func (op *BeagleBoneFSOpenPin) gpioGetValue() (int, error) {
 	var b []byte
 	b = make([]byte, 1)
 	n, e := op.valueFile.ReadAt(b, 0)
+
 	value := 0
 	if n > 0 {
 		if b[0] == '1' {
@@ -143,8 +226,14 @@ func (d *BeagleBoneFSDriver) Close() {
 }
 
 // create an openPin object and put it in the map.
-func (d *BeagleBoneFSDriver) makeOpenPin(pin Pin, gpioLogicalPin int) *BeagleBoneFSOpenPin {
-	result := &BeagleBoneFSOpenPin{pin: pin, gpioLogical: gpioLogicalPin}
+func (d *BeagleBoneFSDriver) makeOpenGPIOPin(pin Pin, gpioLogicalPin int) *BeagleBoneFSOpenPin {
+	result := &BeagleBoneFSOpenPin{pin: pin, gpioLogical: gpioLogicalPin, isAnalog: false}
+	d.openPins[pin] = result
+	return result
+}
+
+func (d *BeagleBoneFSDriver) makeOpenAnalogPin(pin Pin, analogName string) *BeagleBoneFSOpenPin {
+	result := &BeagleBoneFSOpenPin{pin: pin, isAnalog: true, analogFile: analogName}
 	d.openPins[pin] = result
 	return result
 }
@@ -158,15 +247,17 @@ func (d *BeagleBoneFSDriver) PinMode(pin Pin, mode PinIOMode) error {
 
 	// handle analog first, they are simplest from PinMode perspective
 	if p.isAnalogPin() {
-		if mode != INPUT {
-			return errors.New(fmt.Sprintf("Pin %d is an analog pin, and the mode must be INPUT", p))
+		if mode != INPUT_ANALOG {
+			return errors.New(fmt.Sprintf("Pin %d is an analog pin, and the mode must be INPUT_ANALOG", p))
 		}
-		// @todo set up the analog pin
-		return nil // nothing to set up
+
+		openPin := d.makeOpenAnalogPin(pin, p.gpioName)
+		e := openPin.analogOpen()
+		return e
 	}
 
 	// Create an open pin object
-	openPin := d.makeOpenPin(pin, p.gpioLogical)
+	openPin := d.makeOpenGPIOPin(pin, p.gpioLogical)
 	e := openPin.gpioExport()
 	if e != nil {
 		return e
@@ -198,7 +289,7 @@ func (d *BeagleBoneFSDriver) PinMode(pin Pin, mode PinIOMode) error {
 func (d *BeagleBoneFSDriver) DigitalWrite(pin Pin, value int) (e error) {
 	openPin := d.openPins[pin]
 	if openPin == nil {
-		return errors.New("Pin is being written but has not been opened")
+		return errors.New("Pin is being written but has not been opened. Have you called PinMode?")
 	}
 	openPin.gpioSetValue(value)
 	return nil
@@ -214,7 +305,11 @@ func (d *BeagleBoneFSDriver) AnalogWrite(pin Pin, value int) (e error) {
 }
 
 func (d *BeagleBoneFSDriver) AnalogRead(pin Pin) (value int, e error) {
-	return 0, nil
+	openPin := d.openPins[pin]
+	if openPin == nil {
+		return 0, errors.New("Pin is being read for analog value but has not been opened. Have you called PinMode?")
+	}
+	return openPin.analogGetValue()
 }
 
 func (d *BeagleBoneFSDriver) PinMap() (pinMap HardwarePinMap) {

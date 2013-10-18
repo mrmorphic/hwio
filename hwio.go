@@ -189,13 +189,15 @@ func checkPinMode(mode PinIOMode, pd *PinDef) (e error) {
 	ok := false
 	switch mode {
 	case INPUT:
-		ok = pd.HasCapability(CAP_INPUT) || pd.HasCapability(CAP_ANALOG_IN)
+		ok = pd.HasCapability(CAP_INPUT)
 	case OUTPUT:
 		ok = pd.HasCapability(CAP_OUTPUT)
 	case INPUT_PULLUP:
 		ok = pd.HasCapability(CAP_INPUT_PULLUP)
 	case INPUT_PULLDOWN:
 		ok = pd.HasCapability(CAP_INPUT_PULLDOWN)
+	case INPUT_ANALOG:
+		ok = pd.HasCapability(CAP_ANALOG_IN)
 	}
 	if ok {
 		return nil
@@ -247,7 +249,7 @@ func DigitalRead(pin Pin) (result int, e error) {
 func AnalogRead(pin Pin) (result int, e error) {
 	if errorChecking {
 		if e = assertDriver(); e != nil {
-			return
+			return 0, e
 		}
 
 		a := assignedPins[pin]
@@ -255,7 +257,7 @@ func AnalogRead(pin Pin) (result int, e error) {
 			e = errors.New(fmt.Sprintf("AnalogRead: pin %d mode has not been set", pin))
 			return
 		}
-		if a.pinIOMode != INPUT && a.pinIOMode != INPUT_PULLUP {
+		if a.pinIOMode != INPUT_ANALOG {
 			e = errors.New(fmt.Sprintf("AnalogRead: pin %d mode is not set for input", pin))
 			return
 		}

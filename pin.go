@@ -13,6 +13,7 @@ const (
 	OUTPUT
 	INPUT_PULLUP
 	INPUT_PULLDOWN
+	INPUT_ANALOG
 	// @todo PinIOMode consider an input_analog mode for analog pins. Not an issue on beaglebone,
 	// @todo    but could be an issue on devices that support digital and analog input on the same pin,
 	// @todo    if such devices exist.
@@ -29,6 +30,8 @@ func (mode PinIOMode) String() string {
 		return "INPUT_PULLUP"
 	case INPUT_PULLDOWN:
 		return "INPUT_PULLDOWN"
+	case INPUT_ANALOG:
+		return "INPUT_ANALOG"
 	}
 	return ""
 }
