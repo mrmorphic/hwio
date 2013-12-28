@@ -46,8 +46,9 @@ Reading an analog value looks like this:
 
 	value, err := hwio.Analogread(somePin)
 
-Analog values are integers typically between 0-1800, which is the number of millivolts. (Note that you cannot drive analog inputs
-more than 1.8 volts on the BeagleBone, and you should use the analog voltage references it provides)
+Analog values (on BeagleBone Black at least) are integers typically between 0-1800, which is the number of millivolts. 
+(Note that you cannot drive analog inputs more than 1.8 volts on the BeagleBone, and you should use the analog voltage
+references it provides)
 
 ## Utility Functions
 
@@ -82,7 +83,7 @@ The intention of the hwio library is to use uname to attempt to detect the platf
 so for some platforms this may auto-detect. However, with the variety of boards around and the variety of operation systems, you may find that autodetection
 doesn't work. If you need to set the driver automatically, you can do:
 
-	hwio.SetDriver(new(BeagleBoneFSDriver))
+	hwio.SetDriver(new(BeagleBoneBlackDriver))
 
 This needs to be done before any other hwio calls.
 
@@ -92,6 +93,8 @@ By default, hwio performs error checking on all operations (e.g. if you write to
 an error). However, error checking carries a minimal performance overhead. To turn this error checking off, you can:
 
 	hwio.SetErrorChecking(false)
+
+This only affects operations such as DigitalRead and DigitalWrite, which could be invoked at high frequency.
 
 For more information about using the library, see http://stuffwemade.net/hwio which has:
 
@@ -105,7 +108,7 @@ REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
 
  *	It is under development. If you're lucky, it might work. It should be considered
 	Alpha.
- *	Currently it is limited to GPIO on BeagleBone and Raspberry Pi.
+ *	Currently it is limited to GPIO on Raspberry Pi, and GPIO and analog input on BeagleBone Black
  *	Only GPIO is tested. Negative interactions with other system functions
 	is not tested.
  *	If you don't want to risk frying your board, you can still run the
@@ -116,12 +119,17 @@ REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
 
 Currently there are 3 drivers:
 
-  *	BeagleBoneFSDriver - for BeagleBone boards running linux kernel 3.8 or higher, including
-  	BeagleBone black
-  *	BeagleBoneDriver - for BeagleBone boards running older SRM kernels (pre-device tree)
-  *	RaspberryPiDriver - for Raspberry Pi
+  *	BeagleBoneBlackDriver - for BeagleBone boards running linux kernel 3.7 or higher, including
+  	BeagleBone Black. This is untested on older BeagleBone boards with updated kernels.
+  * RaspberryPiDTDriver - for Raspberry Pi modules running linux kernel 3.7 or higher, which includes newer Raspian
+    kernels and some late Occidental kernels.
+  * TestDriver - for unit tests.
 
-### BeagleBoneFSDriver
+Old pre-kernel-3.7 drivers for BeagleBone and Raspberry Pi have been deprecated as I have no test beds for these. If you want
+to use these, you can check out the 'legacy' branch that contains these, but no new features will be added.
+
+
+### BeagleBoneBlackDriver
 
 This driver accesses hardware via the device interfaces exposed in the file system on linux kernels 3.8 or higher, where
 device tree is mandated. This should be a robust driver as the hardware access is maintained by device driver authors,
@@ -129,36 +137,23 @@ but is likely to be not as fast as direct memory I/O to the hardware as there is
 
 Status:
 
-  * In development
+  * In active development
   * New driver, not yet fully tested but good indications it works as it is supposed to.
-  * Some GPIOs are known to work on writes, unknown on reads
+  * Driver automatically blocks out the GPIO pins that are allocated to LCD and MMC on the default BeagleBone Black boards.
+  * GPIOs not assigned at boot to other modules are known to read and write.
   * USR0-USR3 don't work and cannot be accessed as GPIO, as the LED driver reserves them.
   * Analog reads are working
+  * GPIO pull-ups is not yet supported.
 
 
-### BeagleBoneDriver
+### RaspberryPiDTDriver
 
-This driver accesses hardware directly using memory mapped I/O. It will only work on older SRM kernals (pre 3.8). It is generally
-pretty quick as all non-setup functions access devices directly.
+This driver is very similar to the BeagleBone Black driver in that it uses the modules compiled into the kernel and
+configured using device tree. It uses the same GPIO implementaton, just with different pins.
 
-This driver is deprecated in favour of BeagleBoneFSDriver, as it is only useful for older kernels. Also, I don't have a BeagleBone with the older
-kernel for testing any more, so I'm not in a position to test changes to this driver.
+DigitalRead and DigitalWrite are implemented, but are not currently tested.
 
-Status:
-
-  * Alpha
-  *	GPIO on all pins known to work for output and all input modes (pull variations)
-
-
-### RaspberryPiDriver
-
-This driver accesses hardware directly using memory mapped I.O.
-
-Status:
-
-  * Beta
-  * GPIO on all pins known to work for input and output
-
+GetPin references on this driver return the pin numbers that are on the headers. Pin 0 is unimplemented.
 
 ## How it Works
 
@@ -170,17 +165,23 @@ direct memory access to I/O registers, but is less portable.
 
 Some general principles the library attempts to adhere to include:
 
- *	Pin references are logical, and are mapped to hardware pins by the driver.
+ *	Pin references are logical, and are mapped to hardware pins by the driver. The pin
+    numbers you get back from GetPin are, unless otherwise specified, related to the pin numbers
+    on extension headers.
  *	Drivers provide pin names, so you can look them up by meaningful names
 	instead of relying on device specific numbers.
  *	The library does not implement Arduino functions for their own sake if go's
 	framework naturally supports them better, unless we can provide a simpler interface
  	to those functions and keep close to the Arduino semantics.
+ *	Drivers are very thin layers; most of the I/O functionality is provided by **modules**.
+    These aim to be as generic as possible so that different drivers on similar kernels can
+    assemble the modules that are enabled in device tree, with appropriate pin configuration.
+    This also makes it easier to add in new modules to support various SoC functions.
  *	Make no assumption about the state of a pin whose mode has not been set.
  	Specifically, pins that don't have mode set may not on a particular hardware
  	configuration even be configured as general purpose I/O. For example, many
- 	beaglebone pins have overloaded functions set using a multiplexer. Any pin
- 	whose mode is set by PinMode can be assumed to be general purpose I/O, and
+ 	beaglebone pins have overloaded functions set using a multiplexer, and some may be pre-assigned.
+ 	Any pin whose mode is set by PinMode can be assumed to be general purpose I/O, and
  	likewise if it is not set, it could have any multiplexed behaviour assigned
  	to it. A consequence is that unlike Arduino, PinMode *must* be called before
  	a pin is used.
@@ -192,10 +193,10 @@ Some general principles the library attempts to adhere to include:
  	should be able to be disabled for maximum performance.
  *	Make simple stuff simple, and harder stuff possible. In particular, while
  	Arduino-like methods have uniform interface and semantics across drivers,
- 	we don't hide the driver itself, so special features of a driver can still
- 	be used, albeit non-portably.
- *	Sub packages can be added as required that approximately parallel Arduino
- 	libraries (e.g. perhaps an SD card package). Where possible, these
+ 	we don't hide the driver itself or the modules it uses, so special features of a driver or module
+ 	can still be used, albeit non-portably.
+ *	Sub-packages can be added as required that approximately parallel Arduino
+ 	libaries (e.g. perhaps an SD card package). Where possible, these
  	implementations should be generic across I/O pins. e.g. not assuming
  	specific pin behaviour as happens with Arduino.
 
@@ -211,10 +212,10 @@ names.
 
 Each driver must implement a method that defines the mapping from logical pins
 to physical pins as understood by that piece of hardware. Additionally, the
-driver also publishes the capabilities of each pin, so that hwio can ensure
-that constraints of the hardware are met. For example, if a pin implements PWM
-in hardware, that is a capability. A method (e.g. motor driver) that requires
-hardware PWM can ensure that a pin has the appropriate capability. Because each
+driver also publishes the modules that the hardware configuration supports, so
+that hwio can ensure that constraints of the hardware are met. For example, if a
+pin implements PWM and GPIO in hardware, it is associated with two modules. When
+the PWM module is enabled, it will assign the pin to itself. Because each
 pin can have a different set of capabilities, there is no distinction between
 analog and digital pins as there is in Arduino; there is one set of pins, which
 may support digital and/or analog capabilities.
@@ -229,7 +230,6 @@ The caller generally works with logical pin numbers retrieved by GetPin.
  *	Serial support for UART pins (lib, BeagleBone and R-Pi)
  *	SPI support; consider augmenting ShiftIn and ShiftOut to use hardware pins
  	if appropriate (Beaglebone and R-Pi)
- *	define a way to model multi-pin capabilities. e.g LCD or MMC on BeagleBone
  *	LCD, particularly HD44780 (lib)
  *	Servo (lib)
  *	Stepper (lib)
