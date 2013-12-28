@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -30,8 +31,9 @@ var definedPins HardwarePinMap
 // A private type for associating a pin's definition with the current IO mode
 // and any other dynamic properties of the pin.
 type assignedPin struct {
-	pinDef    *PinDef   // definition of pin
-	pinIOMode PinIOMode // mode that was assigned to this pin
+	pin    Pin    // pin being assigned
+	module Module // module that has assigned this pin
+	// pinIOMode PinIOMode // mode that was assigned to this pin
 }
 
 // A map of pin numbers to the assigned dynamic properties of the pin. This is
@@ -65,7 +67,7 @@ func fileExists(name string) bool {
 // Work out the driver from environment if we can. If we have any problems,
 // don't generate an error, just return with the driver not set.
 // @todo use reflection to determine all implementors of the driver interface, and
-// @todo   call a method on the interface to self-detect. init and 
+// @todo   call a method on the interface to self-detect. init and
 // @todo   constructor of drivers should do no setup in this case, esp of hardware
 func determineDriver() {
 	uname, e := exec.Command("uname", "-a").Output()
@@ -76,20 +78,20 @@ func determineDriver() {
 	s := string(uname)
 	if strings.Contains(s, "beaglebone") {
 		if fileExists("/sys/kernel/debug/omap_mux") {
-			SetDriver(new(BeagleBoneDriver))
+			// SetDriver(new(BeagleBoneDriver))
 		} else {
-			SetDriver(new(BeagleBoneFSDriver))
+			SetDriver(new(BeagleBoneBlackDriver))
 		}
 	} else if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") {
-		SetDriver(new(RaspberryPiDriver))
+		// SetDriver(new(RaspberryPiDriver))
 	} else {
-		file, e := os.Open("/etc/rpi-issue") // test for existence (only)
-		if e == nil {
-			file.Close()
-			SetDriver(new(RaspberryPiDriver))
-		} else {
-			fmt.Printf("Unable to select a suitable driver for this board.\n%s\n", s)
-		}
+		// file, e := os.Open("/etc/rpi-issue") // test for existence (only)
+		// if e == nil {
+		// 	file.Close()
+		// 	SetDriver(new(RaspberryPiDriver))
+		// } else {
+		fmt.Printf("Unable to select a suitable driver for this board.\n%s\n", s)
+		// }
 	}
 }
 
@@ -135,15 +137,16 @@ func GetDefinedPins() HardwarePinMap {
 // Search is case sensitive at the moment
 // @todo GetPin: consider making it case-insensitive on name
 // @todo GetPin: consider allowing an int or int as string to identify logical pin directly
-func GetPin(cname string) (Pin, error) {
+func GetPin(pinName string) (Pin, error) {
 	for pin, pinDef := range definedPins {
-		for _, name := range pinDef.hwPinRefs {
-			if name == cname {
+		for _, name := range pinDef.names {
+			if name == pinName {
 				return pin, nil
 			}
 		}
 	}
-	return Pin(0), errors.New(fmt.Sprintf("Could not find a pin called %s", cname))
+
+	return Pin(0), fmt.Errorf("Could not find a pin called %s", pinName)
 }
 
 // Shortcut for calling GetPin and then PinMode.
@@ -162,128 +165,93 @@ func SetErrorChecking(check bool) {
 	errorChecking = check
 }
 
-// Set the mode of a pin. Analogous to Arduino pin mode.
-func PinMode(pin Pin, mode PinIOMode) (e error) {
-	if errorChecking {
-		if e = assertDriver(); e != nil {
-			return
-		}
-
-		pd := definedPins[pin]
-		if pd == nil {
-			return errors.New(fmt.Sprintf("Pin %d is not defined by the current driver", pin))
-		}
-
-		if e = checkPinMode(mode, pd); e != nil {
-			return
-		}
-
-		// assign this pin
-		assignedPins[pin] = &assignedPin{pinDef: pd, pinIOMode: mode}
+// Helper function to get GPIO module
+func GetGPIOModule() (GPIOModule, error) {
+	m, e := GetModule("gpio")
+	if e != nil {
+		return nil, e
 	}
 
-	return driver.PinMode(pin, mode)
+	if m == nil {
+		return nil, errors.New("Driver does not support GPIO")
+	}
+
+	return m.(GPIOModule), nil
 }
 
-func checkPinMode(mode PinIOMode, pd *PinDef) (e error) {
-	ok := false
-	switch mode {
-	case INPUT:
-		ok = pd.HasCapability(CAP_INPUT)
-	case OUTPUT:
-		ok = pd.HasCapability(CAP_OUTPUT)
-	case INPUT_PULLUP:
-		ok = pd.HasCapability(CAP_INPUT_PULLUP)
-	case INPUT_PULLDOWN:
-		ok = pd.HasCapability(CAP_INPUT_PULLDOWN)
-	case INPUT_ANALOG:
-		ok = pd.HasCapability(CAP_ANALOG_IN)
+// Given an internal pin number, return the canonical name for the pin, as defined by the driver. If the pin
+// is not to the driver, return "".
+func PinName(pin Pin) string {
+	p := definedPins[pin]
+	if p == nil {
+		return ""
 	}
-	if ok {
-		return nil
+	return p.names[0]
+}
+
+// Set the mode of a pin. Analogous to Arduino pin mode.
+func PinMode(pin Pin, mode PinIOMode) error {
+	gpio, e := GetGPIOModule()
+	if e != nil {
+		return e
 	}
-	return errors.New(fmt.Sprintf("Pin %d can't be set to mode %s because it does not support that capability", pd.pin, mode.String()))
+
+	return gpio.PinMode(pin, mode)
+}
+
+// Assign a pin to a module. This is typically called by modules when they allocate pins. If the pin is already assigned,
+// an error is generated.
+func assignPin(pin Pin, module Module) error {
+	if a := assignedPins[pin]; a != nil {
+		return fmt.Errorf("Pin %d is already assigned to module %s", pin, a.module.GetName())
+	}
+	assignedPins[pin] = &assignedPin{pin, module}
+	return nil
 }
 
 // Write a value to a digital pin
 func DigitalWrite(pin Pin, value int) (e error) {
-	if errorChecking {
-		if e = assertDriver(); e != nil {
-			return
-		}
-
-		a := assignedPins[pin]
-		if a == nil {
-			return errors.New(fmt.Sprintf("DigitalWrite: pin %d mode has not been set", pin))
-		}
-		if a.pinIOMode != OUTPUT {
-			return errors.New(fmt.Sprintf("DigitalWrite: pin %d mode is not set for output", pin))
-		}
+	gpio, e := GetGPIOModule()
+	if e != nil {
+		return e
 	}
 
-	return driver.DigitalWrite(pin, value)
+	return gpio.DigitalWrite(pin, value)
 }
 
 // Read a value from a digital pin
 func DigitalRead(pin Pin) (result int, e error) {
-	if errorChecking {
-		if e = assertDriver(); e != nil {
-			return 0, e
-		}
-
-		a := assignedPins[pin]
-		if a == nil {
-			e = errors.New(fmt.Sprintf("DigitalRead: pin %d mode has not been set", pin))
-			return
-		}
-		if a.pinIOMode != INPUT && a.pinIOMode != INPUT_PULLUP && a.pinIOMode != INPUT_PULLDOWN {
-			e = errors.New(fmt.Sprintf("DigitalRead: pin %d mode is not set for input", pin))
-			return
-		}
+	// @todo consider memoizing
+	gpio, e := GetGPIOModule()
+	if e != nil {
+		return 0, e
 	}
 
-	return driver.DigitalRead(pin)
+	return gpio.DigitalRead(pin)
+}
+
+// Helper function to get GPIO module
+func GetAnalogModule() (AnalogModule, error) {
+	m, e := GetModule("analog")
+	if e != nil {
+		return nil, e
+	}
+
+	if m == nil {
+		return nil, errors.New("Driver does not support analog")
+	}
+
+	return m.(AnalogModule), nil
 }
 
 // Read an analog value from a pin. The range of values is hardware driver dependent.
-func AnalogRead(pin Pin) (result int, e error) {
-	if errorChecking {
-		if e = assertDriver(); e != nil {
-			return 0, e
-		}
-
-		a := assignedPins[pin]
-		if a == nil {
-			e = errors.New(fmt.Sprintf("AnalogRead: pin %d mode has not been set", pin))
-			return
-		}
-		if a.pinIOMode != INPUT_ANALOG {
-			e = errors.New(fmt.Sprintf("AnalogRead: pin %d mode is not set for input", pin))
-			return
-		}
+func AnalogRead(pin Pin) (int, error) {
+	analog, e := GetAnalogModule()
+	if e != nil {
+		return 0, e
 	}
 
-	return driver.AnalogRead(pin)
-}
-
-// Write an analog value. The interpretation is hardware dependent, but is
-// generally implemented using PWM.
-func AnalogWrite(pin Pin, value int) (e error) {
-	if errorChecking {
-		if e = assertDriver(); e != nil {
-			return
-		}
-
-		a := assignedPins[pin]
-		if a == nil {
-			return errors.New(fmt.Sprintf("AnalogWrite: pin %d mode has not been set", pin))
-		}
-		if a.pinIOMode != OUTPUT {
-			return errors.New(fmt.Sprintf("AnalogWrite: pin %d mode is not set for output", pin))
-		}
-	}
-
-	return driver.AnalogWrite(pin, value)
+	return analog.AnalogRead(pin)
 }
 
 // Delay execution by the specified number of milliseconds. This is a helper
@@ -379,54 +347,51 @@ func WriteUIntToPins(value uint32, pins []Pin) error {
 	return nil
 }
 
-// def toggle(gpio_pin):
-//   """ Toggles the state of the given digital pin. """
-//   assert (gpio_pin in GPIO), "*Invalid GPIO pin: '%s'" % gpio_pin
-//   _xorReg(GPIO[gpio_pin][0]+GPIO_DATAOUT, GPIO[gpio_pin][1])
+// Write a string to a file and close it again.
+func writeStringToFile(filename string, value string) error {
+	//	fmt.Printf("writing %s to file %s\n", value, filename)
+	f, e := os.OpenFile(filename, os.O_WRONLY|os.O_TRUNC, 0666)
+	if e != nil {
+		return e
+	}
+	defer f.Close()
 
-// def pinState(gpio_pin):
-//   """ Returns the state of a digital pin if it is configured as
-//       an output. Returns None if it is configuredas an input. """
-//   assert (gpio_pin in GPIO), "*Invalid GPIO pin: '%s'" % gpio_pin
-//   if (_getReg(GPIO[gpio_pin][0]+GPIO_OE) & GPIO[gpio_pin][1]):
-//     return None
-//   if (_getReg(GPIO[gpio_pin][0]+GPIO_DATAOUT) & GPIO[gpio_pin][1]):
-//     return HIGH
-//   return LOW
+	f.WriteString(value)
+	return nil
+}
 
-// @todo Implement other core Arduino function equivalents:
-//	AnalogReference
-//	Tone
-//	NoTone
-//	ShiftOut
-//	ShiftIn
-//	PulseIn
-//	Millis
-//	Micros
-//	RandomSeed
-//	Random
-//	AttachInterupt
-//	DetachInterupt
+// Given a glob pattern, return the full path of the first matching file
+func findFirstMatchingFile(glob string) (string, error) {
+	matches, e := filepath.Glob(glob)
+	if e != nil {
+		return "", e
+	}
+
+	if len(matches) >= 1 {
+		return matches[0], nil
+	}
+	return "", nil
+}
+
+// Get a module by name. If driver is not set, it will return an error. If the driver does not support that module,
+//
+func GetModule(name string) (Module, error) {
+	driver := GetDriver()
+	if driver == nil {
+		return nil, errors.New("GetModule: Driver is not set")
+	}
+
+	modules := driver.GetModules()
+	return modules[name], nil
+}
 
 // This is the interface that hardware drivers implement.
 type HardwareDriver interface {
 	// Initialise the driver after creation
 	Init() (e error)
 
-	// Set mode of a pin
-	PinMode(pin Pin, mode PinIOMode) (e error)
-
-	// Write digital output
-	DigitalWrite(pin Pin, value int) error
-
-	// Read digital input
-	DigitalRead(Pin) (int, error)
-
-	// PWM write
-	AnalogWrite(pin Pin, value int) error
-
-	// Analog input. Resolution is device dependent.
-	AnalogRead(pin Pin) (int, error)
+	// Return a module by name, or nil if undefined. The module names can be different between types of boards.
+	GetModules() map[string]Module
 
 	// Return the pin map for the driver, listing all supported pins and their capabilities
 	PinMap() (pinMap HardwarePinMap)

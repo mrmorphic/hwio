@@ -45,16 +45,16 @@ const (
 type Pin int
 
 type PinDef struct {
-	pin          Pin           // the pin, also in the map key of HardwarePinMap
-	hwPinRefs    []string      // the hardware name(s) of the pin, driver specific.
-	capabilities CapabilitySet // set of capabilities of the pin
+	pin     Pin      // the pin, also in the map key of HardwarePinMap
+	names   []string // a list of names for the pin as defined by driver. There should be at least one. The first is the canonical name.
+	modules []string // a list of module names that can use this pin
 }
 
 type HardwarePinMap map[Pin]*PinDef
 
 // Add a pin to the map
-func (m HardwarePinMap) add(pin Pin, refs []string, cap CapabilitySet) {
-	m[pin] = &PinDef{pin: pin, hwPinRefs: refs, capabilities: cap}
+func (m HardwarePinMap) add(pin Pin, names []string, modules []string) {
+	m[pin] = &PinDef{pin, names, modules}
 }
 
 // Given a pin number, return it's PinDef, or nil if that pin is not defined in the map
@@ -65,23 +65,23 @@ func (m HardwarePinMap) GetPin(pin Pin) *PinDef {
 // Provide a string representation of a logic pin and the capabilties it
 // supports.
 func (pd *PinDef) String() string {
-	s := pd.Names() + "  cap:" + pd.capabilities.String()
+	s := pd.Names() + "  modules:" + strings.Join(pd.modules, ",")
 	return s
 }
 
 // From the hwPinRefs, construct a string by appending them together. Not brilliantly efficient,
 // but its most for diagnostics anyway.
 func (pd *PinDef) Names() string {
-	return strings.Join(pd.hwPinRefs, ",")
+	return strings.Join(pd.names, ",")
 }
 
-// Determine if a pin has a particular capability.
-func (pd *PinDef) HasCapability(cap Capability) bool {
-	//	fmt.Printf("HasCap: checking (%s) has capability %s", pd.String(), cap.String())
-	for _, v := range pd.capabilities {
-		if v == cap {
-			return true
-		}
-	}
-	return false
-}
+// // Determine if a pin has a particular capability.
+// func (pd *PinDef) HasCapability(cap Capability) bool {
+// 	//	fmt.Printf("HasCap: checking (%s) has capability %s", pd.String(), cap.String())
+// 	for _, v := range pd.capabilities {
+// 		if v == cap {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
