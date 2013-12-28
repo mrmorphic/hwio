@@ -83,7 +83,8 @@ func determineDriver() {
 			SetDriver(new(BeagleBoneBlackDriver))
 		}
 	} else if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") {
-		// SetDriver(new(RaspberryPiDriver))
+		// @todo test for pre-3.7 kernels
+		SetDriver(new(RaspberryPiDTDriver))
 	} else {
 		// file, e := os.Open("/etc/rpi-issue") // test for existence (only)
 		// if e == nil {
