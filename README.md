@@ -151,7 +151,11 @@ Status:
 This driver is very similar to the BeagleBone Black driver in that it uses the modules compiled into the kernel and
 configured using device tree. It uses the same GPIO implementaton, just with different pins.
 
-DigitalRead and DigitalWrite are implemented, but are not currently tested.
+Current status:
+
+ *	DigitalRead and DigitalWrite (GPIO) have been tested and work correctly on supported GPIO pins. Test platform was
+ 	Raspberry Pi (revision 1), Raspian 2013-12-20-wheezy-raspbian, kernel 3.10.24+.
+ *	GPIO pins are gpio4, gpio17, gpio18, gpio21, gpio22, gpio23, gpio24 and gpio25.
 
 GetPin references on this driver return the pin numbers that are on the headers. Pin 0 is unimplemented.
 
