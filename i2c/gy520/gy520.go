@@ -9,7 +9,6 @@
 package gy520
 
 import (
-	"fmt"
 	"hwio"
 )
 
@@ -42,6 +41,8 @@ const (
 	REG_GYRO_ZOUT_L = 0x48
 
 	REG_PWR_MGMT_1 = 0x6b
+
+	PARAM_SLEEP = 0x40
 )
 
 type GY520 struct {
@@ -57,17 +58,35 @@ func NewGY520(module hwio.I2CModule) *GY520 {
 
 // Wake the device. By default on power on, the device is asleep.
 func (g *GY520) Wake() error {
-	// get sleep status
-	// clear bit
-	// write back
+	v, e := g.device.ReadByte(REG_PWR_MGMT_1)
+	if e != nil {
+		return e
+	}
+
+	v &= ^byte(PARAM_SLEEP)
+
+	e = g.device.WriteByte(REG_PWR_MGMT_1, v)
+	if e != nil {
+		return e
+	}
+
 	return nil
 }
 
 // Put the device back to sleep.
 func (g *GY520) Sleep() error {
-	// get sleep status
-	// clear bit
-	// write back
+	v, e := g.device.ReadByte(REG_PWR_MGMT_1)
+	if e != nil {
+		return e
+	}
+
+	v |= ^byte(PARAM_SLEEP)
+
+	e = g.device.WriteByte(REG_PWR_MGMT_1, v)
+	if e != nil {
+		return e
+	}
+
 	return nil
 }
 
@@ -76,9 +95,6 @@ func (g *GY520) GetGyro() (gyroX int, gyroY int, gyroZ int, e error) {
 	if e != nil {
 		return 0, 0, 0, e
 	}
-
-	//	fmt.Printf("length of received buffer is %d\n", len(buffer))
-	//	fmt.Printf("bytes are %02x %02x %02x %02x %02x %02x\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5])
 
 	gyroX = int(int16(hwio.UInt16FromUInt8(buffer[0], buffer[1])))
 	gyroY = int(int16(hwio.UInt16FromUInt8(buffer[2], buffer[3])))
@@ -93,9 +109,6 @@ func (g *GY520) GetAccel() (accelX int, accelY int, accelZ int, e error) {
 		return 0, 0, 0, e
 	}
 
-	fmt.Printf("length of received buffer is %d\n", len(buffer))
-	fmt.Printf("bytes are %02x %02x %02x %02x %02x %02x\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5])
-
 	accelX = int(int16(hwio.UInt16FromUInt8(buffer[0], buffer[1])))
 	accelY = int(int16(hwio.UInt16FromUInt8(buffer[2], buffer[3])))
 	accelZ = int(int16(hwio.UInt16FromUInt8(buffer[4], buffer[5])))
@@ -108,9 +121,6 @@ func (g *GY520) GetTemp() (int, error) {
 	if e != nil {
 		return 0, e
 	}
-
-	fmt.Printf("length of received buffer is %d\n", len(buffer))
-	fmt.Printf("bytes are %02x %02x\n", buffer[0], buffer[1])
 
 	return int(int16(hwio.UInt16FromUInt8(buffer[0], buffer[1]))), nil
 }
