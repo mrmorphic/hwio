@@ -123,6 +123,13 @@ func writePinAndCheck(t *testing.T, pin Pin, value int, driver *TestDriver) {
 	}
 }
 
+func TestBitManipulation(t *testing.T) {
+	v := UInt16FromUInt8(0x45, 0x65)
+	if v != 0x4565 {
+		t.Error(fmt.Sprintf("UInt16FromUInt8 does not work correctly, expected 0x4565, got %04x", v))
+	}
+}
+
 // func TestAnalogWrite(t *testing.T) {
 // 	SetDriver(new(TestDriver))
 
