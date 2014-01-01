@@ -2,25 +2,24 @@
 
 ## Introduction
 
-hwio is a library for interfacing with hardware I/O. It is loosely modelled on
-the Arduino programming style, but deviating where that doesn't make sense in
-go. It makes use of a thin hardware abstraction via an interface so a program
-written against the library for say a beaglebone could be easily compiled to run
-on a raspberry pi, maybe only changing pin references.
+hwio is a Go library for interfacing with hardware I/O, particularly on ARM SoC-based boards.
+It is loosely modelled on the Arduino programming style, but deviating where that doesn't make sense in
+Go. It makes use of a thin hardware abstraction via an interface so a program written against the library
+for say a beaglebone could be easily compiled to run on a raspberry pi, maybe only changing pin references.
 
-To use hwio, you just need to import it into your go project, initialise pins as
+To use hwio, you just need to import it into your Go project, initialise modules and pins as
 required, and then use functions that manipulate the pins.
 
 ## Basic Usage
 
 Initialising a pin looks like this:
 
-	myPin, err := hwio.GetPin("GPIO4")
+	myPin, err := hwio.GetPin("gpio4")
 	err = hwio.PinMode(myPin, hwio.OUTPUT)
 
 Or the shorter, more convenient form:
 
-	myPin, err := GetPinWithMode("GPIO4", hwio.OUTPUT)
+	myPin, err := GetPinWithMode("gpio4", hwio.OUTPUT)
 
 Unlike Arduino, where the pins are directly numbered and you just use the number, in hwio
 you get the pin first, by name. This is necessary as different hardware drivers may provide
