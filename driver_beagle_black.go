@@ -164,12 +164,15 @@ func (d *BeagleBoneBlackDriver) initialiseModules() error {
 		return e
 	}
 
-	// @todo get the I2C interface working.
-	// i2c1 := NewDTI2CModule("i2c1")
+	i2c2 := NewDTI2CModule("i2c1")
+	e = i2c2.SetOptions(d.getI2C2Options())
+	if e != nil {
+		return e
+	}
 
 	d.modules["gpio"] = gpio
 	d.modules["analog"] = analog
-	// d.modules["i2c1"] = i2c1
+	d.modules["i2c2"] = i2c2
 
 	return nil
 }
@@ -204,6 +207,24 @@ func (d *BeagleBoneBlackDriver) getAnalogOptions() map[string]interface{} {
 		}
 	}
 	result["pins"] = pins
+
+	return result
+}
+
+// Return the i2c options required to initialise that module.
+func (d *BeagleBoneBlackDriver) getI2C2Options() map[string]interface{} {
+	result := make(map[string]interface{})
+
+	pins := make(DTI2CModulePins, 0)
+	p19, _ := GetPin("P19")
+	pins = append(pins, p19)
+	p20, _ := GetPin("P20")
+	pins = append(pins, p20)
+
+	result["pins"] = pins
+	// this should really look at the device structure to ensure that I2C2 on hardware maps to /dev/i2c1. This confusion seems
+	// to happen because of the way the kernel initialises the devices at boot time.
+	result["device"] = "/dev/i2c-1"
 
 	return result
 }
