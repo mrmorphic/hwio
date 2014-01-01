@@ -374,6 +374,21 @@ func findFirstMatchingFile(glob string) (string, error) {
 	return "", nil
 }
 
+// Given a high and low byte, combine to form a single 16-bit value
+func UInt16FromUInt8(highByte byte, lowByte byte) uint16 {
+	return uint16(uint16(highByte)<<8) | uint16(lowByte)
+}
+
+func ReverseBytes16(value uint16) uint16 {
+	// @todo implement ReverseBytes16()
+	return 0
+}
+
+func ReverseBytes32(value uint32) uint32 {
+	// @todo implement ReverseBytes32()
+	return 0
+}
+
 // Get a module by name. If driver is not set, it will return an error. If the driver does not support that module,
 //
 func GetModule(name string) (Module, error) {
