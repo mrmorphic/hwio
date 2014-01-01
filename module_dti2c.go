@@ -89,7 +89,8 @@ func (module *DTI2CModule) SetOptions(options map[string]interface{}) error {
 func (module *DTI2CModule) Enable() error {
 	// Assign the pins so nothing else can allocate them.
 	for _, pin := range module.definedPins {
-		assignPin(pin, module)
+		fmt.Printf("assigning pin %d\n", pin)
+		AssignPin(pin, module)
 	}
 
 	// @todo consider lazily opening the file. Since Enable is called automatically by BBB driver, this
@@ -108,6 +109,11 @@ func (module *DTI2CModule) Disable() error {
 	if e := module.fd.Close(); e != nil {
 		return e
 	}
+
+	for _, pin := range module.definedPins {
+		UnassignPin(pin)
+	}
+
 	return nil
 }
 

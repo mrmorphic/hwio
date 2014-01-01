@@ -58,6 +58,9 @@ func (module *DTGPIOModule) Enable() error {
 
 // disables module and release any pins assigned.
 func (module *DTGPIOModule) Disable() error {
+	for _, openPin := range module.openPins {
+		openPin.gpioUnexport()
+	}
 	return nil
 }
 
@@ -71,7 +74,7 @@ func (module *DTGPIOModule) PinMode(pin Pin, mode PinIOMode) error {
 	}
 
 	// attempt to assign this pin for this module.
-	e := assignPin(pin, module)
+	e := AssignPin(pin, module)
 	if e != nil {
 		return e
 	}
@@ -165,6 +168,17 @@ func (op *DTGPIOModuleOpenPin) gpioExport() error {
 
 	// calculate the base name for the gpio pin
 	op.gpioBaseName = "/sys/class/gpio/gpio" + strconv.Itoa(op.gpioLogical)
+	return nil
+}
+
+// Needs to be called to allocate the GPIO pin
+func (op *DTGPIOModuleOpenPin) gpioUnexport() error {
+	s := strconv.FormatInt(int64(op.gpioLogical), 10)
+	e := writeStringToFile("/sys/class/gpio/unexport", s)
+	if e != nil {
+		return e
+	}
+
 	return nil
 }
 

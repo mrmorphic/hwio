@@ -52,6 +52,7 @@ var errorChecking bool = true
 // about it, it would just work. If it cannot determine the driver, it doesn't
 // set the driver to anything.
 func init() {
+	assignedPins = make(map[Pin]*assignedPin)
 	determineDriver()
 }
 
@@ -114,7 +115,6 @@ func SetDriver(d HardwareDriver) {
 		fmt.Printf("Could not initialise driver: %s", e)
 	}
 	definedPins = driver.PinMap()
-	assignedPins = make(map[Pin]*assignedPin)
 }
 
 // Retrieve the current hardware driver.
@@ -201,13 +201,44 @@ func PinMode(pin Pin, mode PinIOMode) error {
 }
 
 // Assign a pin to a module. This is typically called by modules when they allocate pins. If the pin is already assigned,
-// an error is generated.
-func assignPin(pin Pin, module Module) error {
+// an error is generated. ethod is public in case it is needed to hack around default driver settings.
+func AssignPin(pin Pin, module Module) error {
 	if a := assignedPins[pin]; a != nil {
 		return fmt.Errorf("Pin %d is already assigned to module %s", pin, a.module.GetName())
 	}
 	assignedPins[pin] = &assignedPin{pin, module}
 	return nil
+}
+
+// Assign a set of pins. Method is public in case it is needed to hack around default driver settings.
+func AssignPins(pins PinList, module Module) error {
+	for _, pin := range pins {
+		e := AssignPin(pin, module)
+		if e != nil {
+			return e
+		}
+	}
+	return nil
+}
+
+// Unassign a pin. Method is public in case it is needed to hack around default driver settings.
+func UnassignPin(pin Pin) error {
+	delete(assignedPins, pin)
+	return nil
+}
+
+// Unassign a set of pins. Method is public in case it is needed to hack around default driver settings.
+func UnassignPins(pins PinList) (er error) {
+	er = nil
+
+	for _, pin := range pins {
+		e := UnassignPin(pin)
+		if e != nil {
+			er = e
+		}
+	}
+
+	return
 }
 
 // Write a value to a digital pin

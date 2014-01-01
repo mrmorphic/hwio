@@ -50,6 +50,8 @@ type PinDef struct {
 	modules []string // a list of module names that can use this pin
 }
 
+type PinList []Pin
+
 type HardwarePinMap map[Pin]*PinDef
 
 // Add a pin to the map

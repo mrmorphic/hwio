@@ -86,7 +86,7 @@ func (module *DTAnalogModule) Enable() error {
 		// attempt to assign all pins to this module
 		for pin, _ := range module.definedPins {
 			// attempt to assign this pin for this module.
-			e = assignPin(pin, module)
+			e = AssignPin(pin, module)
 			if e != nil {
 				return e
 			}
@@ -97,6 +97,16 @@ func (module *DTAnalogModule) Enable() error {
 
 // disables module and release any pins assigned.
 func (module *DTAnalogModule) Disable() error {
+	// Unassign any pins we may have assigned
+	for pin, _ := range module.definedPins {
+		// attempt to assign this pin for this module.
+		UnassignPin(pin)
+	}
+
+	// if there are any open analog pins, close them
+	for _, openPin := range module.openPins {
+		openPin.analogClose()
+	}
 	return nil
 }
 
@@ -151,4 +161,8 @@ func (op *DTAnalogModuleOpenPin) analogGetValue() (int, error) {
 	value, e := strconv.Atoi(string(b[:n-1]))
 
 	return value, e
+}
+
+func (op *DTAnalogModuleOpenPin) analogClose() error {
+	return op.valueFile.Close()
 }
