@@ -48,14 +48,17 @@ type I2CModule interface {
 // An object that represents a device on a bus. Once an i2c module has been enabled, you can use GetDevice to get an instance
 // of i2c device. You can then talk to the device directly with the supported operations.
 type I2CDevice interface {
-	// Read a single byte from a register on the device
-	ReadByte(command byte) byte
+	// Read a single byte from a register on the device.
+	ReadByte(command byte) (byte, error)
+
+	// Write a single byte to a register on the device.
+	WriteByte(command byte, value byte) error
 
 	// Read one or more bytes from the selected slave.
 	Read(command byte, numBytes int) ([]byte, error)
 
 	// Write one or more bytes to the selected slave.
-	Write(command byte, buffer []byte, numBytes int) (e error)
+	Write(command byte, buffer []byte) (e error)
 }
 
 // Interface for SPI implementations

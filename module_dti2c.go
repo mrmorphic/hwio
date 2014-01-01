@@ -51,6 +51,7 @@ const (
 
 	// Talk to bus
 	I2C_SMBUS = 0x0720
+
 	// Set bus slave
 	I2C_SLAVE = 0x0703
 )
@@ -122,7 +123,30 @@ func NewDTI2CDevice(module *DTI2CModule, address int) *DTI2CDevice {
 	return &DTI2CDevice{module, address}
 }
 
-func (device *DTI2CDevice) Write(command byte, buffer []byte, numBytes int) (e error) {
+func (device *DTI2CDevice) Write(command byte, data []byte) (e error) {
+	device.module.Lock()
+	defer device.module.Unlock()
+
+	device.sendSlaveAddress()
+
+	buffer := make([]byte, len(data)+1)
+	buffer[0] = byte(len(data))
+	copy(buffer[1:], data)
+
+	//	buffer := make([]byte, numBytes+2)
+
+	busData := i2c_smbus_ioctl_data{
+		read_write: I2C_SMBUS_WRITE,
+		command:    command,
+		size:       I2C_SMBUS_I2C_BLOCK_DATA,
+		data:       uintptr(unsafe.Pointer(&buffer[0])),
+	}
+
+	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, uintptr(device.module.fd.Fd()), I2C_SMBUS, uintptr(unsafe.Pointer(&busData)))
+	if err != 0 {
+		return syscall.Errno(err)
+	}
+
 	return nil
 }
 
@@ -156,11 +180,14 @@ func (device *DTI2CDevice) Read(command byte, numBytes int) ([]byte, error) {
 }
 
 // Read 1 byte from the bus
-func (device *DTI2CDevice) ReadByte(command byte) byte {
+func (device *DTI2CDevice) ReadByte(command byte) (byte, error) {
+	device.module.Lock()
+	defer device.module.Unlock()
 
-	device.sendSlaveAddress()
-
-	// i2c_smbus_access(file,I2C_SMBUS_READ,command,I2C_SMBUS_BYTE_DATA,&data)
+	e := device.sendSlaveAddress()
+	if e != nil {
+		return 0, e
+	}
 
 	data := uint8(0)
 
@@ -171,64 +198,42 @@ func (device *DTI2CDevice) ReadByte(command byte) byte {
 		data:       uintptr(unsafe.Pointer(&data)),
 	}
 
-	// fmt.Println("About to Read8 ", module.fd.Fd(), " IOCTL ", I2C_SMBUS, " Command", command)
+	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, uintptr(device.module.fd.Fd()), I2C_SMBUS, uintptr(unsafe.Pointer(&busData)))
+	if err != 0 {
+		return 0, syscall.Errno(err)
+	}
+
+	return data, nil
+}
+
+func (device *DTI2CDevice) WriteByte(command byte, value byte) error {
+	device.module.Lock()
+	defer device.module.Unlock()
+
+	e := device.sendSlaveAddress()
+	if e != nil {
+		return e
+	}
+
+	busData := i2c_smbus_ioctl_data{
+		read_write: I2C_SMBUS_WRITE,
+		command:    command,
+		size:       I2C_SMBUS_BYTE_DATA,
+		data:       uintptr(unsafe.Pointer(&value)),
+	}
 
 	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, uintptr(device.module.fd.Fd()), I2C_SMBUS, uintptr(unsafe.Pointer(&busData)))
 	if err != 0 {
-		panic(syscall.Errno(err))
+		return syscall.Errno(err)
 	}
 
-	return data
+	return nil
 }
 
 func (device *DTI2CDevice) sendSlaveAddress() error {
-	// fmt.Println("About to open Bus fd ", module.fd.Fd(), " IOCTL ", I2C_SLAVE, " Arg", address)
 	_, _, enum := syscall.Syscall(syscall.SYS_IOCTL, uintptr(device.module.fd.Fd()), I2C_SLAVE, uintptr(device.address))
 	if enum != 0 {
 		return fmt.Errorf("Could not open I2C bus on module %s", device.module.GetName())
 	}
 	return nil
 }
-
-// // opening bus
-
-// #include <errno.h>
-// #include <string.h>
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <unistd.h>
-// #include <linux/i2c-dev.h>
-// #include <sys/ioctl.h>
-// #include <sys/types.h>
-// #include <sys/stat.h>
-// #include <fcntl.h>
-// int file;
-// char *filename = "/dev/i2c-1";
-// if ((file = open(filename, O_RDWR)) < 0) {
-//     /* ERROR HANDLING: you can check errno to see what went wrong */
-//     perror("Failed to open the i2c bus");
-//     exit(1);
-// }
-
-// initiating comms:
-// int addr = 0x48;     // The I2C address of the device
-// if (ioctl(file, I2C_SLAVE, addr) < 0) {
-//     printf("Failed to acquire bus access and/or talk to slave.\n");
-//     /* ERROR HANDLING; you can check errno to see what went wrong */
-//     exit(1);
-// }
-
-// reading frm device:
-
-// unsigned char buf[10] = {0};
-
-// for (int i = 0; i<4; i++) {
-//     // Using I2C Read
-//     if (read(file,buf,2) != 2) {
-//         /* ERROR HANDLING: i2c transaction failed */
-//         printf("Failed to read from the i2c bus: %s.\n", strerror(errno));
-//             printf("\n\n");
-//     } else {
-//         /* Device specific stuff here */
-//     }
-// }
