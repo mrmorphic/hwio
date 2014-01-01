@@ -87,8 +87,13 @@ func (module *DTI2CModule) SetOptions(options map[string]interface{}) error {
 
 // enable this I2C module
 func (module *DTI2CModule) Enable() error {
-	// @todo allocate the pins
+	// Assign the pins so nothing else can allocate them.
+	for _, pin := range module.definedPins {
+		assignPin(pin, module)
+	}
 
+	// @todo consider lazily opening the file. Since Enable is called automatically by BBB driver, this
+	// @todo file will always be open even if i2c is not used.
 	fd, e := os.OpenFile(module.deviceFile, os.O_RDWR, os.ModeExclusive)
 	if e != nil {
 		return e

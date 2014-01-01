@@ -174,6 +174,9 @@ func (d *BeagleBoneBlackDriver) initialiseModules() error {
 	d.modules["analog"] = analog
 	d.modules["i2c2"] = i2c2
 
+	// initialise by default, which will assign P9.19 and P9.20. This is configured by default in device tree and these pins cannot be assigned.
+	i2c2.Enable()
+
 	return nil
 }
 
