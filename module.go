@@ -1,5 +1,6 @@
 // Defines generic types and behaviours for modules. A given hardware platform will typically support one or more
 // modules.
+
 package hwio
 
 // Generic interface type for all modules.
@@ -35,20 +36,35 @@ type AnalogModule interface {
 	// reference voltage
 }
 
-// Interface for I2C implementations
+// Interface for I2C implementations. Assumes that this device is the only bus master, so initiates all transactions. An I2C module
+// supports exactly one i2c bus, so for systems with multiple i2c busses, the driver will create an instance for each accessible
+// i2c bus.
 type I2CModule interface {
 	Module
-	Write(address int, buffer []byte) (e error)
-	Read(address int, buffer []byte) (nBytes int, e error)
-	Available(address int) (avail bool, e error)
+
+	GetDevice(address int) I2CDevice
 }
 
+// An object that represents a device on a bus. Once an i2c module has been enabled, you can use GetDevice to get an instance
+// of i2c device. You can then talk to the device directly with the supported operations.
+type I2CDevice interface {
+	// Read a single byte from a register on the device
+	ReadByte(command byte) byte
+
+	// Read one or more bytes from the selected slave.
+	Read(command byte, numBytes int) ([]byte, error)
+
+	// Write one or more bytes to the selected slave.
+	Write(command byte, buffer []byte, numBytes int) (e error)
+}
+
+// Interface for SPI implementations
 type SPIModule interface {
 	Module
 
 	// Select the device, and send data to it
-	Write(data []byte) (e error)
+	Write(slaveSelect int, data []byte) (e error)
 
 	// Select the device, and read data from it
-	Read([]byte) (nBytes int, e error)
+	Read(slaveSelect int, data []byte) (nBytes int, e error)
 }
