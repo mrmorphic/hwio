@@ -1,6 +1,8 @@
 # hwio
 
-## Note: The legacy branch is deprecated. It contains drivers for BeagleBone and Raspberry Pi pre-3.7. With 3.7, device was introduced, and the old techniques used
+## Note
+
+The legacy branch is deprecated. It contains drivers for BeagleBone and Raspberry Pi pre-3.7. With 3.7, device was introduced, and the old techniques used
 in these drivers (memory-mapped I/O) don't work.
 
 ## Introduction
