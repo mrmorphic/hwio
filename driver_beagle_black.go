@@ -183,6 +183,12 @@ func (d *BeagleBoneBlackDriver) initialiseModules() error {
 	d.modules["gpio"] = gpio
 	d.modules["analog"] = analog
 	d.modules["i2c2"] = i2c2
+
+	// alias i2c to i2c2. This is for portability; getting the i2c module on any device should return the default i2c interface,
+	// but should not preclude addition of other i2c busses.
+	d.modules["i2c"] = i2c2
+
+	// these are the pre-allocated pins
 	d.modules["preallocated"] = preallocated
 
 	// initialise by default, which will assign P9.19 and P9.20. This is configured by default in device tree and these pins cannot be assigned.
