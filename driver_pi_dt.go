@@ -82,11 +82,14 @@ func (d *RaspberryPiDTDriver) initialiseModules() error {
 		return e
 	}
 
-	// @todo get the I2C interface working.
-	// i2c1 := NewDTI2CModule("i2c1")
+	i2c := NewDTI2CModule("i2c")
+	e = gpio.SetOptions(d.getI2COptions())
+	if e != nil {
+		return e
+	}
 
 	d.modules["gpio"] = gpio
-	// d.modules["i2c1"] = i2c1
+	d.modules["i2c"] = i2c
 
 	return nil
 }
@@ -106,6 +109,36 @@ func (d *RaspberryPiDTDriver) getGPIOOptions() map[string]interface{} {
 	result["pins"] = pins
 
 	return result
+}
+
+func (d *RaspberryPiDTDriver) getI2COptions() map[string]interface{} {
+	result := make(map[string]interface{})
+
+	pins := make(DTI2CModulePins, 0)
+	pins = append(pins, Pin(3))
+	pins = append(pins, Pin(5))
+
+	result["pins"] = pins
+
+	if d.BoardRevision() == 1 {
+		result["device"] = "/dev/i2c-0"
+	} else {
+		result["device"] = "/dev/i2c-1"
+	}
+
+	return result
+}
+
+// Determine the version of Raspberry Pi.
+// This discussion http://www.raspberrypi.org/phpBB3/viewtopic.php?f=44&t=23989
+// was used to determine the algorithm, specifically the comment by gordon@drogon.net
+// It will return 1 or 2.
+func (d *RaspberryPiDTDriver) BoardRevision() int {
+	revision := CpuInfo("Revision")
+	if revision == "0002" || revision == "0003" {
+		return 1
+	}
+	return 2
 }
 
 func (d *RaspberryPiDTDriver) GetModules() map[string]Module {
