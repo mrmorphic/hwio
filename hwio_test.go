@@ -130,6 +130,13 @@ func TestBitManipulation(t *testing.T) {
 	}
 }
 
+func TestCpuInfo(t *testing.T) {
+	s := CpuInfo("processor")
+	if s == "" {
+		t.Error("Expected a processor property from CpuInfo")
+	}
+}
+
 // func TestAnalogWrite(t *testing.T) {
 // 	SetDriver(new(TestDriver))
 
