@@ -83,7 +83,7 @@ func (d *RaspberryPiDTDriver) initialiseModules() error {
 	}
 
 	i2c := NewDTI2CModule("i2c")
-	e = gpio.SetOptions(d.getI2COptions())
+	e = i2c.SetOptions(d.getI2COptions())
 	if e != nil {
 		return e
 	}
