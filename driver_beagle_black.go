@@ -231,9 +231,9 @@ func (d *BeagleBoneBlackDriver) getI2C2Options() map[string]interface{} {
 	result := make(map[string]interface{})
 
 	pins := make(DTI2CModulePins, 0)
-	p19, _ := GetPin("P19")
+	p19 := d.getPin("P9.19")
 	pins = append(pins, p19)
-	p20, _ := GetPin("P20")
+	p20 := d.getPin("P9.20")
 	pins = append(pins, p20)
 
 	result["pins"] = pins
@@ -245,20 +245,29 @@ func (d *BeagleBoneBlackDriver) getI2C2Options() map[string]interface{} {
 	return result
 }
 
+// internal function to get a Pin. It does not use GetPin because that relies on the driver having already been initialised. This
+// method can be called while stil initialising. Only matches names[0], which is the Pn.nn expansion header name.
+func (d *BeagleBoneBlackDriver) getPin(name string) Pin {
+	for i, hw := range d.beaglePins {
+		if hw.names[0] == name {
+			return Pin(i)
+		}
+	}
+	return Pin(0)
+}
+
 func (d *BeagleBoneBlackDriver) getPreallocatedOptions() map[string]interface{} {
 	result := make(map[string]interface{})
 
 	pins := make(PinList, 0)
 
 	// Add all pre-allocated pins to this map (excludes pre-allocated pins picked up by other modules, eg i2c2.)
-	for _, hw := range d.beaglePins {
+	for i, hw := range d.beaglePins {
 		if d.usedBy(hw, "preallocated") {
-			pin, e := GetPin(hw.names[0])
-			if e == nil {
-				pins = append(pins, pin)
-			}
+			pins = append(pins, Pin(i))
 		}
 	}
+	fmt.Printf("BBB pre-allocated pins are %s\n", pins)
 	result["pins"] = pins
 
 	return result
