@@ -29,9 +29,8 @@ The mode constants include:
 
  *  INPUT - set pin to digital input
  *  OUTPUT - set pin to digital output
- *  INPUT_PULLUP - set pin to digital input with internal pull-up resistor (where supported by pin)
- *  INPUT_PULLDOWN - set pin to digital input with internal pull-down resistor (where supported by pin)
- *  INPUT_ANALOG - set pin to read analog input
+
+(Pull-ups and pull-downs are not currently supported by the drivers, as this is not apparently exposed to file system.)
 
 Writing a value to a pin looks like this:
 
@@ -107,9 +106,7 @@ REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
 
  *	It is under development. If you're lucky, it might work. It should be considered
 	Alpha.
- *	Currently it is limited to GPIO on Raspberry Pi, and GPIO and analog input on BeagleBone Black
- *	Only GPIO is tested. Negative interactions with other system functions
-	is not tested.
+ *	Currently it is limited to GPIO and i2c on Raspberry Pi, and GPIO, analog and i2c input on BeagleBone Black
  *	If you don't want to risk frying your board, you can still run the
  	unit tests ;-)
 
@@ -125,7 +122,7 @@ Currently there are 3 drivers:
   * TestDriver - for unit tests.
 
 Old pre-kernel-3.7 drivers for BeagleBone and Raspberry Pi have been deprecated as I have no test beds for these. If you want
-to use these, you can check out the 'legacy' branch that contains these, but no new features will be added.
+to use these, you can check out the 'legacy' branch that contains the older drivers, but no new features will be added.
 
 
 ### BeagleBoneBlackDriver
@@ -136,25 +133,26 @@ but is likely to be not as fast as direct memory I/O to the hardware as there is
 
 Status:
 
-  * In active development
-  * New driver, not yet fully tested but good indications it works as it is supposed to.
+  * In active development.
+  * Tested for gpio reads and writes, analog reads and i2c. Test device was BeagleBone Black running rev A5C, running angstrom.
   * Driver automatically blocks out the GPIO pins that are allocated to LCD and MMC on the default BeagleBone Black boards.
   * GPIOs not assigned at boot to other modules are known to read and write.
   * USR0-USR3 don't work and cannot be accessed as GPIO, as the LED driver reserves them.
-  * Analog reads are working
   * GPIO pull-ups is not yet supported.
-
+  * i2c is enabled by default.
 
 ### RaspberryPiDTDriver
 
 This driver is very similar to the BeagleBone Black driver in that it uses the modules compiled into the kernel and
-configured using device tree. It uses the same GPIO implementaton, just with different pins.
+configured using device tree. It uses the same GPIO and i2c implementatons, just with different pins.
 
 Current status:
 
  *	DigitalRead and DigitalWrite (GPIO) have been tested and work correctly on supported GPIO pins. Test platform was
  	Raspberry Pi (revision 1), Raspian 2013-12-20-wheezy-raspbian, kernel 3.10.24+.
  *	GPIO pins are gpio4, gpio17, gpio18, gpio21, gpio22, gpio23, gpio24 and gpio25.
+ *	I2C is working on raspian. You need to enable it on the board first.
+ 	Follow [these instructions] (http://www.abelectronics.co.uk/i2c-raspbian-wheezy/info.aspx "i2c and spi support on raspian")
 
 GetPin references on this driver return the pin numbers that are on the headers. Pin 0 is unimplemented.
 
@@ -233,8 +231,6 @@ The caller generally works with logical pin numbers retrieved by GetPin.
  *	Serial support for UART pins (lib, BeagleBone and R-Pi)
  *	SPI support; consider augmenting ShiftIn and ShiftOut to use hardware pins
  	if appropriate (Beaglebone and R-Pi)
- *	LCD, particularly HD44780 (lib)
  *	Servo (lib)
  *	Stepper (lib)
- *	I2C (lib)
  *	TLC5940 (lib)
