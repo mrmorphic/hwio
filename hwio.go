@@ -79,7 +79,7 @@ func determineDriver() {
 	s := string(uname)
 	if strings.Contains(s, "beaglebone") {
 		if fileExists("/sys/kernel/debug/omap_mux") {
-			// SetDriver(new(BeagleBoneDriver))
+			panic("BeagleBone devices with kernels prior to 3.7 are no longer supported. The old driver is available in the 'legacy' branch.")
 		} else {
 			SetDriver(new(BeagleBoneBlackDriver))
 		}
