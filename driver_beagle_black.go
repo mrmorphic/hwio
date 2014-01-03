@@ -67,10 +67,10 @@ func (d *BeagleBoneBlackDriver) makePin(names []string, modules []string, gpioLo
 func (d *BeagleBoneBlackDriver) createPinData() {
 	d.beaglePins = []*BeaglePin{
 		// P8
-		d.makePin([]string{"P8.3", "gpmc_ad6", "gpio1_6"}, []string{"gpio"}, 38, 0),
-		d.makePin([]string{"P8.4", "gpmc_ad7", "gpio1_7"}, []string{"gpio"}, 39, 0),
-		d.makePin([]string{"P8.5", "gpmc_ad2", "gpio1_2"}, []string{"gpio"}, 34, 0),
-		d.makePin([]string{"P8.6", "gpmc_ad3", "gpio1_3"}, []string{"gpio"}, 35, 0),
+		d.makePin([]string{"P8.3", "gpmc_ad6", "gpio1_6"}, []string{"gpio", "emmc2", "preallocated"}, 38, 0), // preassigned via DT in default config
+		d.makePin([]string{"P8.4", "gpmc_ad7", "gpio1_7"}, []string{"gpio", "emmc2", "preallocated"}, 39, 0), // preassigned via DT in default config
+		d.makePin([]string{"P8.5", "gpmc_ad2", "gpio1_2"}, []string{"gpio", "emmc2", "preallocated"}, 34, 0), // preassigned via DT in default config
+		d.makePin([]string{"P8.6", "gpmc_ad3", "gpio1_3"}, []string{"gpio", "emmc2", "preallocated"}, 35, 0), // preassigned via DT in default config
 		d.makePin([]string{"P8.7", "gpmc_advn_ale", "gpio2_2"}, []string{"gpio"}, 66, 0),
 		d.makePin([]string{"P8.8", "gpmc_oen_ren", "gpio2_3"}, []string{"gpio"}, 67, 0),
 		d.makePin([]string{"P8.9", "gpmc_ben0_cle", "gpio2_5"}, []string{"gpio"}, 69, 0),
