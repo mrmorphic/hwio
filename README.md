@@ -167,19 +167,9 @@ doesn't work. If you need to set the driver automatically, you can do:
 This needs to be done before any other hwio calls.
 
 
-## More Advanced
+## More Information
 
-By default, hwio performs error checking on all operations (e.g. if you write to a pin, but have not set it to a writeable mode, it will return
-an error). However, error checking carries a minimal performance overhead. To turn this error checking off, you can:
-
-	hwio.SetErrorChecking(false)
-
-This only affects operations such as DigitalRead and DigitalWrite, which could be invoked at high frequency.
-
-For more information about using the library, see http://stuffwemade.net/hwio which has:
-
- *	Pin diagrams for supported boards
-
+For more information about the library, including pin diagrams for supported boards, see http://stuffwemade.net/hwio.
 
 
 ## BIG SHINY DISCLAIMER
@@ -188,7 +178,6 @@ REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
 
  *	It is under development. If you're lucky, it might work. It should be considered
 	Alpha.
- *	Currently it is limited to GPIO and i2c on Raspberry Pi, and GPIO, analog and i2c input on BeagleBone Black
  *	If you don't want to risk frying your board, you can still run the
  	unit tests ;-)
 
@@ -235,17 +224,14 @@ Current status:
  	Raspberry Pi (revision 1), Raspian 2013-12-20-wheezy-raspbian, kernel 3.10.24+.
  *	GPIO pins are gpio4, gpio17, gpio18, gpio21, gpio22, gpio23, gpio24 and gpio25.
  *	I2C is working on raspian. You need to enable it on the board first.
- 	Follow [these instructions] (http://www.abelectronics.co.uk/i2c-raspbian-wheezy/info.aspx "i2c and spi support on raspian")
+ 	Follow [these instructions](http://www.abelectronics.co.uk/i2c-raspbian-wheezy/info.aspx "i2c and spi support on raspian")
 
 GetPin references on this driver return the pin numbers that are on the headers. Pin 0 is unimplemented.
 
-## How it Works
+Note: before using this, check your kernel is 3.7 or higher. There are a number of pre-3.7 distributions still in use, and this driver
+does not support pre-3.7.
 
-Hardware drivers implement the interface that allows different devices to
-implement the I/O handling as appropriate. This allows for drivers that use
-different techniques to access the I/O. e.g. some drivers may use GPIO (a file
-system approach), whereas for maximum performance another driver might use
-direct memory access to I/O registers, but is less portable.
+## Implementation Notes
 
 Some general principles the library attempts to adhere to include:
 
@@ -253,7 +239,8 @@ Some general principles the library attempts to adhere to include:
     numbers you get back from GetPin are, unless otherwise specified, related to the pin numbers
     on extension headers.
  *	Drivers provide pin names, so you can look them up by meaningful names
-	instead of relying on device specific numbers.
+	instead of relying on device specific numbers. On boards such as BeagleBone, where pins
+	are multiplexed to internal functions, pins can have multiple names.
  *	The library does not implement Arduino functions for their own sake if go's
 	framework naturally supports them better, unless we can provide a simpler interface
  	to those functions and keep close to the Arduino semantics.
@@ -264,25 +251,21 @@ Some general principles the library attempts to adhere to include:
  *	Make no assumption about the state of a pin whose mode has not been set.
  	Specifically, pins that don't have mode set may not on a particular hardware
  	configuration even be configured as general purpose I/O. For example, many
- 	beaglebone pins have overloaded functions set using a multiplexer, and some may be pre-assigned.
-	Any pin whose mode is set by PinMode can be assumed to be general purpose I/O, and
+ 	beaglebone pins have overloaded functions set using a multiplexer, and some are be pre-assigned
+ 	by the default device tree configuration.
+ *	Any pin whose mode is set by PinMode can be assumed to be general purpose I/O, and
  	likewise if it is not set, it could have any multiplexed behaviour assigned
  	to it. A consequence is that unlike Arduino, PinMode *must* be called before
  	a pin is used.
  *	The library should be as fast as possible so that applications that require
  	very high speed I/O should achieve maximal throughput, given an appropriate
  	driver.
- *	The library should be tolerant towards beginners, and give meaningful errors
- 	when the hardware is requested to do things it can't. But this checking
- 	should be able to be disabled for maximum performance.
  *	Make simple stuff simple, and harder stuff possible. In particular, while
  	Arduino-like methods have uniform interface and semantics across drivers,
  	we don't hide the driver itself or the modules it uses, so special features of a driver or module
  	can still be used, albeit non-portably.
  *	Sub-packages can be added as required that approximately parallel Arduino
- 	libaries (e.g. perhaps an SD card package). Where possible, these
- 	implementations should be generic across I/O pins. e.g. not assuming
- 	specific pin behaviour as happens with Arduino.
+ 	libaries (e.g. perhaps an SD card package).
 
 
 ### Pins
@@ -302,7 +285,7 @@ pin implements PWM and GPIO in hardware, it is associated with two modules. When
 the PWM module is enabled, it will assign the pin to itself. Because each
 pin can have a different set of capabilities, there is no distinction between
 analog and digital pins as there is in Arduino; there is one set of pins, which
-may support digital and/or analog capabilities.
+may support any number of capabilities including digital and analog.
 
 The caller generally works with logical pin numbers retrieved by GetPin.
 
