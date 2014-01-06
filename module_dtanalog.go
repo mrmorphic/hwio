@@ -67,7 +67,10 @@ func (module *DTAnalogModule) Enable() error {
 		}
 
 		// enable analog
-		writeStringToFile(path, "cape-bone-iio")
+		e = writeStringToFile(path, "cape-bone-iio")
+		if e != nil {
+			return e
+		}
 
 		// determine path where analog files are
 		path, e = findFirstMatchingFile("/sys/devices/ocp.*/helper.*/AIN0")

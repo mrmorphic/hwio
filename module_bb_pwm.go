@@ -166,7 +166,10 @@ func (module *BBPWMModule) makeOpenPin(pin Pin) (*BBPWMModuleOpenPin, error) {
 	module.openPins[pin] = result
 
 	// ensure polarity is 0, so that the duty time represents the time the signal is high.
-	writeStringToFile(result.polarityFile, "0")
+	e = writeStringToFile(result.polarityFile, "0")
+	if e != nil {
+		return nil, e
+	}
 
 	return result, nil
 }
@@ -193,9 +196,7 @@ func (module *BBPWMModule) ensureSlot(item string) error {
 	}
 
 	// enable the item
-	writeStringToFile(path, item)
-
-	return nil
+	return writeStringToFile(path, item)
 }
 
 // Needs to be called to allocate the GPIO pin

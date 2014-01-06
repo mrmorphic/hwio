@@ -389,8 +389,8 @@ func writeStringToFile(filename string, value string) error {
 	}
 	defer f.Close()
 
-	f.WriteString(value)
-	return nil
+	_, e = f.WriteString(value)
+	return e
 }
 
 // Given a glob pattern, return the full path of the first matching file
