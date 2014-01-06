@@ -70,7 +70,7 @@ func (module *DTGPIOModule) GetName() string {
 
 func (module *DTGPIOModule) PinMode(pin Pin, mode PinIOMode) error {
 	if module.definedPins[pin] == nil {
-		return fmt.Errorf("Pin %d is not known as a GPIO pin")
+		return fmt.Errorf("Pin %d is not known as a GPIO pin", pin)
 	}
 
 	// attempt to assign this pin for this module.
