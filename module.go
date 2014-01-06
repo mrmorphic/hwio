@@ -27,6 +27,18 @@ type GPIOModule interface {
 	DigitalRead(pin Pin) (result int, e error)
 }
 
+type PWMModule interface {
+	Module
+
+	EnablePin(pin Pin, enabled bool) error
+
+	// Set the period of this pin, in nanoseconds
+	SetPeriod(pin Pin, ns int64) error
+
+	// Set the duty time, the amount of time during each period that that output is HIGH.
+	SetDuty(pin Pin, ns int64) error
+}
+
 type AnalogModule interface {
 	Module
 

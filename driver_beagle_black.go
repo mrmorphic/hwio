@@ -2,6 +2,7 @@ package hwio
 
 import (
 	"fmt"
+	"strings"
 )
 
 // A driver for BeagleBone's running Linux kernel 3.8 or higher, which use device trees instead
@@ -55,9 +56,7 @@ type BeagleBoneBlackDriver struct {
 
 func (d *BeagleBoneBlackDriver) Init() error {
 	d.createPinData()
-	d.initialiseModules()
-
-	return nil
+	return d.initialiseModules()
 }
 
 func (d *BeagleBoneBlackDriver) makePin(names []string, modules []string, gpioLogical int, analogLogical int) *BeaglePin {
@@ -77,13 +76,13 @@ func (d *BeagleBoneBlackDriver) createPinData() {
 		d.makePin([]string{"P8.10", "gpmc_wen", "gpio2_4"}, []string{"gpio"}, 68, 0),
 		d.makePin([]string{"P8.11", "gpmc_ad13", "gpio1_13"}, []string{"gpio"}, 45, 0),
 		d.makePin([]string{"P8.12", "gpmc_ad12", "gpio1_12"}, []string{"gpio"}, 44, 0),
-		d.makePin([]string{"P8.13", "gpmc_ad9", "gpio0_23"}, []string{"gpio"}, 23, 0),
+		d.makePin([]string{"P8.13", "gpmc_ad9", "gpio0_23"}, []string{"gpio", "pwm2"}, 23, 0),
 		d.makePin([]string{"P8.14", "gpmc_ad10", "gpio0_26"}, []string{"gpio"}, 26, 0),
 		d.makePin([]string{"P8.15", "gpmc_ad15", "gpio1_15"}, []string{"gpio"}, 47, 0),
 		d.makePin([]string{"P8.16", "gpmc_ad14", "gpio1_14"}, []string{"gpio"}, 46, 0),
 		d.makePin([]string{"P8.17", "gpmc_ad11", "gpio0_27"}, []string{"gpio"}, 27, 0),
 		d.makePin([]string{"P8.18", "gpmc_clk", "gpio2_1"}, []string{"gpio"}, 65, 0),
-		d.makePin([]string{"P8.19", "gpmc_ad8", "gpio0_22"}, []string{"gpio"}, 22, 0),
+		d.makePin([]string{"P8.19", "gpmc_ad8", "gpio0_22"}, []string{"gpio", "pwm2"}, 22, 0),
 		d.makePin([]string{"P8.20", "gpmc_csn2", "gpio1_31"}, []string{"gpio", "emmc2", "preallocated"}, 63, 0), // preassigned via DT in default config
 		d.makePin([]string{"P8.21", "gpmc_csn1", "gpio1_30"}, []string{"gpio", "emmc2", "preallocated"}, 62, 0), // preassigned via DT in default config
 		d.makePin([]string{"P8.22", "gpmc_ad5", "gpio1_5"}, []string{"gpio", "emmc2", "preallocated"}, 37, 0),   // preassigned via DT in default config
@@ -91,24 +90,24 @@ func (d *BeagleBoneBlackDriver) createPinData() {
 		d.makePin([]string{"P8.24", "gpmc_ad1", "gpio1_1"}, []string{"gpio", "emmc2", "preallocated"}, 33, 0),   // preassigned via DT in default config
 		d.makePin([]string{"P8.25", "gpmc_ad0", "gpio1_0"}, []string{"gpio", "emmc2", "preallocated"}, 32, 0),   // preassigned via DT in default config
 		d.makePin([]string{"P8.26", "gpmc_csn0", "gpio1_29"}, []string{"gpio"}, 61, 0),
-		d.makePin([]string{"P8.27", "lcd_vsync", "gpio2_22"}, []string{"gpio", "hdmi", "preallocated"}, 86, 0),      // preassigned via DT in default config
-		d.makePin([]string{"P8.28", "lcd_pclk", "gpio2_24"}, []string{"gpio", "hdmi", "preallocated"}, 88, 0),       // preassigned via DT in default config
-		d.makePin([]string{"P8.29", "lcd_hsync", "gpio2_23"}, []string{"gpio", "hdmi", "preallocated"}, 87, 0),      // preassigned via DT in default config
-		d.makePin([]string{"P8.30", "lcd_ac_bias_en", "gpio2_25"}, []string{"gpio", "hdmi", "preallocated"}, 89, 0), // preassigned via DT in default config
-		d.makePin([]string{"P8.31", "lcd_data14", "gpio0_10"}, []string{"gpio", "hdmi", "preallocated"}, 10, 0),     // preassigned via DT in default config
-		d.makePin([]string{"P8.32", "lcd_data15", "gpio0_11"}, []string{"gpio", "hdmi", "preallocated"}, 11, 0),     // preassigned via DT in default config
-		d.makePin([]string{"P8.33", "lcd_data13", "gpio0_9"}, []string{"gpio", "hdmi", "preallocated"}, 9, 0),       // preassigned via DT in default config
-		d.makePin([]string{"P8.34", "lcd_data11", "gpio2_17"}, []string{"gpio", "hdmi", "preallocated"}, 81, 0),     // preassigned via DT in default config
-		d.makePin([]string{"P8.35", "lcd_data12", "gpio0_8"}, []string{"gpio", "hdmi", "preallocated"}, 8, 0),       // preassigned via DT in default config
-		d.makePin([]string{"P8.36", "lcd_data10", "gpio2_16"}, []string{"gpio", "hdmi", "preallocated"}, 80, 0),     // preassigned via DT in default config
-		d.makePin([]string{"P8.37", "lcd_data8", "gpio2_14"}, []string{"gpio", "hdmi", "preallocated"}, 78, 0),      // preassigned via DT in default config
-		d.makePin([]string{"P8.38", "lcd_data9", "gpio2_15"}, []string{"gpio", "hdmi", "preallocated"}, 79, 0),      // preassigned via DT in default config
-		d.makePin([]string{"P8.40", "lcd_data7", "gpio2_13"}, []string{"gpio", "hdmi", "preallocated"}, 77, 0),      // preassigned via DT in default config
-		d.makePin([]string{"P8.41", "lcd_data4", "gpio2_10"}, []string{"gpio", "hdmi", "preallocated"}, 74, 0),      // preassigned via DT in default config
-		d.makePin([]string{"P8.42", "lcd_data5", "gpio2_11"}, []string{"gpio", "hdmi", "preallocated"}, 75, 0),      // preassigned via DT in default config
-		d.makePin([]string{"P8.43", "lcd_data2", "gpio2_8"}, []string{"gpio", "hdmi", "preallocated"}, 72, 0),       // preassigned via DT in default config
-		d.makePin([]string{"P8.44", "lcd_data3", "gpio2_9"}, []string{"gpio", "hdmi", "preallocated"}, 73, 0),       // preassigned via DT in default config
-		d.makePin([]string{"P8.45", "lcd_data0", "gpio2_6"}, []string{"gpio", "hdmi", "preallocated"}, 70, 0),       // preassigned via DT in default config
+		d.makePin([]string{"P8.27", "lcd_vsync", "gpio2_22"}, []string{"gpio", "hdmi", "preallocated"}, 86, 0),          // preassigned via DT in default config
+		d.makePin([]string{"P8.28", "lcd_pclk", "gpio2_24"}, []string{"gpio", "hdmi", "preallocated"}, 88, 0),           // preassigned via DT in default config
+		d.makePin([]string{"P8.29", "lcd_hsync", "gpio2_23"}, []string{"gpio", "hdmi", "preallocated"}, 87, 0),          // preassigned via DT in default config
+		d.makePin([]string{"P8.30", "lcd_ac_bias_en", "gpio2_25"}, []string{"gpio", "hdmi", "preallocated"}, 89, 0),     // preassigned via DT in default config
+		d.makePin([]string{"P8.31", "lcd_data14", "gpio0_10"}, []string{"gpio", "hdmi", "preallocated"}, 10, 0),         // preassigned via DT in default config
+		d.makePin([]string{"P8.32", "lcd_data15", "gpio0_11"}, []string{"gpio", "hdmi", "preallocated"}, 11, 0),         // preassigned via DT in default config
+		d.makePin([]string{"P8.33", "lcd_data13", "gpio0_9"}, []string{"gpio", "hdmi", "preallocated"}, 9, 0),           // preassigned via DT in default config
+		d.makePin([]string{"P8.34", "lcd_data11", "gpio2_17"}, []string{"gpio", "hdmi", "pwm1", "preallocated"}, 81, 0), // preassigned via DT in default config
+		d.makePin([]string{"P8.35", "lcd_data12", "gpio0_8"}, []string{"gpio", "hdmi", "preallocated"}, 8, 0),           // preassigned via DT in default config
+		d.makePin([]string{"P8.36", "lcd_data10", "gpio2_16"}, []string{"gpio", "hdmi", "pwm1", "preallocated"}, 80, 0), // preassigned via DT in default config
+		d.makePin([]string{"P8.37", "lcd_data8", "gpio2_14"}, []string{"gpio", "hdmi", "preallocated"}, 78, 0),          // preassigned via DT in default config
+		d.makePin([]string{"P8.38", "lcd_data9", "gpio2_15"}, []string{"gpio", "hdmi", "preallocated"}, 79, 0),          // preassigned via DT in default config
+		d.makePin([]string{"P8.40", "lcd_data7", "gpio2_13"}, []string{"gpio", "hdmi", "preallocated"}, 77, 0),          // preassigned via DT in default config
+		d.makePin([]string{"P8.41", "lcd_data4", "gpio2_10"}, []string{"gpio", "hdmi", "preallocated"}, 74, 0),          // preassigned via DT in default config
+		d.makePin([]string{"P8.42", "lcd_data5", "gpio2_11"}, []string{"gpio", "hdmi", "preallocated"}, 75, 0),          // preassigned via DT in default config
+		d.makePin([]string{"P8.43", "lcd_data2", "gpio2_8"}, []string{"gpio", "hdmi", "preallocated"}, 72, 0),           // preassigned via DT in default config
+		d.makePin([]string{"P8.44", "lcd_data3", "gpio2_9"}, []string{"gpio", "hdmi", "pwm2", "preallocated"}, 73, 0),   // preassigned via DT in default config
+		d.makePin([]string{"P8.45", "lcd_data0", "gpio2_6"}, []string{"gpio", "hdmi", "pwm2", "preallocated"}, 70, 0),   // preassigned via DT in default config
 		// makePin("P8.46", bbGpioProfile, "gpio2_7", 2, 7, "lcd_data1", 0),
 
 		// P9
@@ -122,17 +121,17 @@ func (d *BeagleBoneBlackDriver) createPinData() {
 		d.makePin([]string{"P9.18", "spi0_d1", "gpio0_4"}, []string{"gpio"}, 4, 0),
 		d.makePin([]string{"P9.19", "uart1_rtsn", "gpio0_13"}, []string{"gpio", "i2c2"}, 13, 0), // preassigned via DT in default config
 		d.makePin([]string{"P9.20", "uart1_ctsn", "gpio0_12"}, []string{"gpio", "i2c2"}, 12, 0), // preassigned via DT in default config
-		d.makePin([]string{"P9.21", "spi0_d0", "gpio0_3"}, []string{"gpio"}, 3, 0),
-		d.makePin([]string{"P9.22", "spi0_sclk", "gpio0_2"}, []string{"gpio"}, 2, 0),
+		d.makePin([]string{"P9.21", "spi0_d0", "gpio0_3"}, []string{"gpio", "pwm0"}, 3, 0),
+		d.makePin([]string{"P9.22", "spi0_sclk", "gpio0_2"}, []string{"gpio", "pwm0"}, 2, 0),
 		d.makePin([]string{"P9.23", "gpmc_a1", "gpio1_17"}, []string{"gpio"}, 49, 0),
 		d.makePin([]string{"P9.24", "uart1_txd", "gpio0_15"}, []string{"gpio"}, 15, 0),
 		d.makePin([]string{"P9.25", "mcasp0_ahclkx", "gpio3_21"}, []string{"gpio", "mcasp0", "preallocated"}, 117, 0), // preassigned via DT in default config
 		d.makePin([]string{"P9.26", "uart1_rxd", "gpio0_14"}, []string{"gpio"}, 14, 0),
 		d.makePin([]string{"P9.27", "mcasp0_fsr", "gpio3_19"}, []string{"gpio"}, 115, 0),
-		d.makePin([]string{"P9.28", "mcasp0_ahclkr", "gpio3_17"}, []string{"gpio", "mcasp0", "preallocated"}, 113, 0), // preassigned via DT in default config
-		d.makePin([]string{"P9.29", "mcasp0_fsx", "gpio3_15"}, []string{"gpio", "mcasp0", "preallocated"}, 111, 0),    // preassigned via DT in default config
+		d.makePin([]string{"P9.28", "mcasp0_ahclkr", "gpio3_17"}, []string{"gpio", "mcasp0", "preallocated"}, 113, 0),      // preassigned via DT in default config
+		d.makePin([]string{"P9.29", "mcasp0_fsx", "gpio3_15"}, []string{"gpio", "mcasp0", "pwm0", "preallocated"}, 111, 0), // preassigned via DT in default config
 		d.makePin([]string{"P9.30", "mcasp0_axr0", "gpio3_16"}, []string{"gpio"}, 112, 0),
-		d.makePin([]string{"P9.31", "mcasp0_aclkx", "gpio3_14"}, []string{"gpio", "mcasp0", "preallocated"}, 110, 0), // preassigned via DT in default config
+		d.makePin([]string{"P9.31", "mcasp0_aclkx", "gpio3_14"}, []string{"gpio", "mcasp0", "pwm0", "preallocated"}, 110, 0), // preassigned via DT in default config
 		d.makePin([]string{"P9.33", "ain4"}, []string{"analog"}, 0, 4),
 		d.makePin([]string{"P9.35", "ain6"}, []string{"analog"}, 0, 6),
 		d.makePin([]string{"P9.36", "ain5"}, []string{"analog"}, 0, 5),
@@ -180,9 +179,29 @@ func (d *BeagleBoneBlackDriver) initialiseModules() error {
 		return e
 	}
 
+	pwm0 := NewBBPWMModule("pwm0")
+	e = pwm0.SetOptions(d.getPWMOptions("pwm0"))
+	if e != nil {
+		return e
+	}
+
+	pwm1 := NewBBPWMModule("pwm1")
+	e = pwm1.SetOptions(d.getPWMOptions("pwm1"))
+	if e != nil {
+		return e
+	}
+	pwm2 := NewBBPWMModule("pwm2")
+	e = pwm2.SetOptions(d.getPWMOptions("pwm2"))
+	if e != nil {
+		return e
+	}
+
 	d.modules["gpio"] = gpio
 	d.modules["analog"] = analog
 	d.modules["i2c2"] = i2c2
+	d.modules["pwm0"] = pwm0
+	d.modules["pwm1"] = pwm1
+	d.modules["pwm2"] = pwm2
 
 	// alias i2c to i2c2. This is for portability; getting the i2c module on any device should return the default i2c interface,
 	// but should not preclude addition of other i2c busses.
@@ -251,6 +270,23 @@ func (d *BeagleBoneBlackDriver) getI2C2Options() map[string]interface{} {
 	return result
 }
 
+func (d *BeagleBoneBlackDriver) getPWMOptions(name string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	pins := make(BBPWMModulePinDefMap, 0)
+	for i, hw := range d.beaglePins {
+		if d.usedBy(hw, name) {
+			n := hw.names[0]
+			n = strings.Replace(n, ".", "_", -1) // P8.13 => P8_13
+			pins[Pin(i)] = &BBPWMModulePinDef{pin: Pin(i), name: n}
+		}
+	}
+
+	result["pins"] = pins
+
+	return result
+}
+
 // internal function to get a Pin. It does not use GetPin because that relies on the driver having already been initialised. This
 // method can be called while stil initialising. Only matches names[0], which is the Pn.nn expansion header name.
 func (d *BeagleBoneBlackDriver) getPin(name string) Pin {
@@ -273,7 +309,7 @@ func (d *BeagleBoneBlackDriver) getPreallocatedOptions() map[string]interface{} 
 			pins = append(pins, Pin(i))
 		}
 	}
-	fmt.Printf("BBB pre-allocated pins are %s\n", pins)
+
 	result["pins"] = pins
 
 	return result
