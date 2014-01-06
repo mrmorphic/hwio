@@ -1,7 +1,6 @@
 package servo
 
 import (
-	"fmt"
 	"hwio"
 )
 
@@ -50,7 +49,7 @@ func New(pwm hwio.PWMModule, pin interface{}) (*Servo, error) {
 // helper function to set the period of each cycle. Servos generally want this to be fixed, typically at 20ms.
 // This just sets the underling PWM period, so if you need less than 1 ms you can set that directly on the PWM.
 func (servo *Servo) SetPeriod(milliseconds int) {
-	servo.PWM.SetPeriod(servo.Pin, int64(milliseconds*1000))
+	servo.PWM.SetPeriod(servo.Pin, int64(milliseconds*1000000))
 }
 
 // Set the servo to the specified angle, typically 0-180. This sets the duty cycle proportionally between min and max,
