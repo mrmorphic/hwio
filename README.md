@@ -139,7 +139,7 @@ This is a preliminary implementation; only P8.13 (pwm2) has been tested. PWM pin
 
 ## Devices
 
-There are sub-packages devices that have been made to work with hwio. The currently supported devices include:
+There are sub-packages under 'devices' that have been made to work with hwio. The currently supported devices include:
 
   *	GY-520 gyroscope/accelerometer using I2C.
   * HD-44780 multi-line LCD display. Currently implemented over I2C converter only.
@@ -150,7 +150,7 @@ See README.md files in respective directories.
 ## Driver Selection
 
 The intention of the hwio library is to use uname to attempt to detect the platform and select an appropriate driver (see drivers section below), 
-so for some platforms this may auto-detect. However, with the variety of boards around and the variety of operation systems, you may find that autodetection
+so for some platforms this may auto-detect. However, with the variety of boards around and the variety of operating systems, you may find that autodetection
 doesn't work. If you need to set the driver automatically, you can do:
 
 	hwio.SetDriver(new(BeagleBoneBlackDriver))
