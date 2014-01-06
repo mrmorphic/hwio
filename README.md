@@ -144,32 +144,7 @@ This is a preliminary implementation; only P8.13 (pwm2) has been tested. PWM pin
 
 ## Servo
 
-The hwio/servo package contains definitions for driving servo motors using PWM pins. To initialise a servo, you need to first get the PWM
-module that the servo is attached. Here is an example of usage:
-
-	import (
-		"hwio"
-		"hwio/servo"
-	)
-
-	m, e := hwio.GetModule("pwm2")
-	if e != nil {
-		fmt.Printf("could not get pwm module: %s\n", e)
-		return
-	}
-
-	pwm := m.(hwio.PWMModule)
-
-	pwm.Enable()
-
-	// create a servo with a named pin. The pin name is passed to GetPin. You can also pass a Pin directly.
-	servo, e := servo.New(pwm, "P8.13")
-
-	// Set the servo angle, between 0 and 180 degrees.
-	servo.Write(45)
-
-	// Set the duty cycle to a specific number of microseconds
-	servo.WriteMicroseconds(1500)
+There is a servo implementation in the hwio/servo package. See README.md in that package.
 
 ## Devices
 
