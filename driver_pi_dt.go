@@ -134,7 +134,7 @@ func (d *RaspberryPiDTDriver) getI2COptions() map[string]interface{} {
 // was used to determine the algorithm, specifically the comment by gordon@drogon.net
 // It will return 1 or 2.
 func (d *RaspberryPiDTDriver) BoardRevision() int {
-	revision := CpuInfo("Revision")
+	revision := CpuInfo(0, "Revision")
 	if revision == "0002" || revision == "0003" {
 		return 1
 	}

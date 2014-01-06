@@ -131,9 +131,9 @@ func TestBitManipulation(t *testing.T) {
 }
 
 func TestCpuInfo(t *testing.T) {
-	s := CpuInfo("processor")
-	if s == "" {
-		t.Error("Expected a processor property from CpuInfo")
+	s := CpuInfo(0, "processor")
+	if s != "0" {
+		t.Error(fmt.Sprintf("Expected 'processor' property of processor 0 to be 0 from CpuInfo, got '%s'", s))
 	}
 }
 
