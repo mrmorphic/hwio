@@ -76,13 +76,13 @@ func (d *BeagleBoneBlackDriver) createPinData() {
 		d.makePin([]string{"P8.10", "gpmc_wen", "gpio2_4"}, []string{"gpio"}, 68, 0),
 		d.makePin([]string{"P8.11", "gpmc_ad13", "gpio1_13"}, []string{"gpio"}, 45, 0),
 		d.makePin([]string{"P8.12", "gpmc_ad12", "gpio1_12"}, []string{"gpio"}, 44, 0),
-		d.makePin([]string{"P8.13", "gpmc_ad9", "gpio0_23"}, []string{"gpio", "pwm2"}, 23, 0),
+		d.makePin([]string{"P8.13", "gpmc_ad9", "gpio0_23", "ehrpwm2B"}, []string{"gpio", "pwm2"}, 23, 0),
 		d.makePin([]string{"P8.14", "gpmc_ad10", "gpio0_26"}, []string{"gpio"}, 26, 0),
 		d.makePin([]string{"P8.15", "gpmc_ad15", "gpio1_15"}, []string{"gpio"}, 47, 0),
 		d.makePin([]string{"P8.16", "gpmc_ad14", "gpio1_14"}, []string{"gpio"}, 46, 0),
 		d.makePin([]string{"P8.17", "gpmc_ad11", "gpio0_27"}, []string{"gpio"}, 27, 0),
 		d.makePin([]string{"P8.18", "gpmc_clk", "gpio2_1"}, []string{"gpio"}, 65, 0),
-		d.makePin([]string{"P8.19", "gpmc_ad8", "gpio0_22"}, []string{"gpio", "pwm2"}, 22, 0),
+		d.makePin([]string{"P8.19", "gpmc_ad8", "gpio0_22", "ehrpwm2A"}, []string{"gpio", "pwm2"}, 22, 0),
 		d.makePin([]string{"P8.20", "gpmc_csn2", "gpio1_31"}, []string{"gpio", "emmc2", "preallocated"}, 63, 0), // preassigned via DT in default config
 		d.makePin([]string{"P8.21", "gpmc_csn1", "gpio1_30"}, []string{"gpio", "emmc2", "preallocated"}, 62, 0), // preassigned via DT in default config
 		d.makePin([]string{"P8.22", "gpmc_ad5", "gpio1_5"}, []string{"gpio", "emmc2", "preallocated"}, 37, 0),   // preassigned via DT in default config
@@ -121,8 +121,8 @@ func (d *BeagleBoneBlackDriver) createPinData() {
 		d.makePin([]string{"P9.18", "spi0_d1", "gpio0_4"}, []string{"gpio"}, 4, 0),
 		d.makePin([]string{"P9.19", "uart1_rtsn", "gpio0_13"}, []string{"gpio", "i2c2"}, 13, 0), // preassigned via DT in default config
 		d.makePin([]string{"P9.20", "uart1_ctsn", "gpio0_12"}, []string{"gpio", "i2c2"}, 12, 0), // preassigned via DT in default config
-		d.makePin([]string{"P9.21", "spi0_d0", "gpio0_3"}, []string{"gpio", "pwm0"}, 3, 0),
-		d.makePin([]string{"P9.22", "spi0_sclk", "gpio0_2"}, []string{"gpio", "pwm0"}, 2, 0),
+		d.makePin([]string{"P9.21", "spi0_d0", "gpio0_3", "ehrpwm0B"}, []string{"gpio", "pwm0"}, 3, 0),
+		d.makePin([]string{"P9.22", "spi0_sclk", "gpio0_2", "ehrpwm0A"}, []string{"gpio", "pwm0"}, 2, 0),
 		d.makePin([]string{"P9.23", "gpmc_a1", "gpio1_17"}, []string{"gpio"}, 49, 0),
 		d.makePin([]string{"P9.24", "uart1_txd", "gpio0_15"}, []string{"gpio"}, 15, 0),
 		d.makePin([]string{"P9.25", "mcasp0_ahclkx", "gpio3_21"}, []string{"gpio", "mcasp0", "preallocated"}, 117, 0), // preassigned via DT in default config
