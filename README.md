@@ -219,6 +219,7 @@ Status:
   * Tested for gpio reads and writes, analog reads and i2c. Test device was BeagleBone Black running rev A5C, running angstrom.
   * Driver automatically blocks out the GPIO pins that are allocated to LCD and MMC on the default BeagleBone Black boards.
   * GPIOs not assigned at boot to other modules are known to read and write.
+  * PWM is known to work on erhpwm2A and B ports.
   * USR0-USR3 don't work and cannot be accessed as GPIO, as the LED driver reserves them.
   * GPIO pull-ups is not yet supported.
   * i2c is enabled by default.
@@ -312,6 +313,5 @@ The caller generally works with logical pin numbers retrieved by GetPin.
  *	Serial support for UART pins (lib, BeagleBone and R-Pi)
  *	SPI support; consider augmenting ShiftIn and ShiftOut to use hardware pins
  	if appropriate (Beaglebone and R-Pi)
- *	Servo (lib)
  *	Stepper (lib)
  *	TLC5940 (lib)
