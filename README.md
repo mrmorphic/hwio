@@ -75,6 +75,11 @@ follows:
 This will write out the n lowest bits of myValue, with the most significant bit of that value written to myPin3 etc. It uses DigitalWrite
 so the outputs are not written instantaneously.
 
+There is an implementation of the Arduino map() function:
+
+	// map a value in range 0-1800 to new range 0-1023
+	i := hwio.Map(value, 0, 1800, 0, 1023)
+
 ## I2C
 
 I2C is supported on BeagleBone Black and Raspberry Pi. It is accessible through the "i2c" module (BBB i2c2 pins), as follows:

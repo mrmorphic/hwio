@@ -406,6 +406,10 @@ func findFirstMatchingFile(glob string) (string, error) {
 	return "", nil
 }
 
+func Map(value int, fromLow int, fromHigh int, toLow int, toHigh int) int {
+	return (value-fromLow)*(toHigh-toLow)/(fromHigh-fromLow) + toLow
+}
+
 // Given a high and low byte, combine to form a single 16-bit value
 func UInt16FromUInt8(highByte byte, lowByte byte) uint16 {
 	return uint16(uint16(highByte)<<8) | uint16(lowByte)
