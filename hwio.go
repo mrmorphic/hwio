@@ -380,6 +380,7 @@ func WriteUIntToPins(value uint32, pins []Pin) error {
 }
 
 // Write a string to a file and close it again.
+// @todo if we are writing to a /dev file, the driver may emit a message for invalid values. We should return that as an error as well.
 func writeStringToFile(filename string, value string) error {
 	//	fmt.Printf("writing %s to file %s\n", value, filename)
 	f, e := os.OpenFile(filename, os.O_WRONLY|os.O_TRUNC, 0666)
