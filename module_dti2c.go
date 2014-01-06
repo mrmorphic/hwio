@@ -89,7 +89,7 @@ func (module *DTI2CModule) SetOptions(options map[string]interface{}) error {
 func (module *DTI2CModule) Enable() error {
 	// Assign the pins so nothing else can allocate them.
 	for _, pin := range module.definedPins {
-		fmt.Printf("assigning pin %d\n", pin)
+		// fmt.Printf("assigning pin %d\n", pin)
 		AssignPin(pin, module)
 	}
 
