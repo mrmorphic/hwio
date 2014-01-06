@@ -9,7 +9,7 @@ Import the packages:
 	// import the require modules
 	import(
 		"hwio"
-		"hwio/i2c/gy520"
+		"hwio/devices/gy520"
 	)
 
 Initialise by fetching an i2c module from the driver. You can get instances of devices attached to

@@ -75,6 +75,78 @@ follows:
 This will write out the n lowest bits of myValue, with the most significant bit of that value written to myPin3 etc. It uses DigitalWrite
 so the outputs are not written instantaneously.
 
+## I2C
+
+I2C is supported on BeagleBone Black and Raspberry Pi. It is accessible through the "i2c" module (BBB i2c2 pins), as follows:
+
+	m, e := hwio.GetModule("i2c")
+	if e != nil {
+		fmt.Printf("could not get i2c module: %s\n", e)
+		return
+	}
+	i2c := m.(hwio.I2CModule)
+
+	// Uncomment on Raspberry pi, which doesn't automatically enable i2c bus. BeagleBone does, as the default device tree enables it.
+	// i2c.Enable()
+	// defer i2c.Disable()
+
+	device := i2c.GetDevice(0x68)
+
+Once you have a device, you can use Write, WriteBytes, Read or ReadBytes to set or get data from the i2c device.
+
+e.g.
+
+	device.WriteByte(controlRegister, someValue)
+
+While you can use the i2c types to directly talk to i2c devices, the specific device may already have higher-level support in the
+hwio/devices package, so check there first, as the hard work may be done already.
+
+## PWM
+
+PWM support for BeagleBone Black has been added. To use a PWM pin, you need to fetch the module that the PWM belongs to, enable the PWM module
+and pin, and then you can manipulate the period and duty cycle. e.g.
+
+	// Get the module
+	m, e := hwio.GetModule("pwm2")
+	if e != nil {
+		fmt.Printf("could not get pwm2 module: %s\n", e)
+		return
+	}
+
+	pwm := m.(hwio.PWMModule)
+
+	// Enable it.
+	pwm.Enable()
+
+	// Get the PWM pin
+	pwm8_13, _ := hwio.GetPin("P8.13")
+	e = pwm.EnablePin(pwm8_13, true)
+	if e != nil {
+		fmt.Printf("Error enabling pin: %s\n", e)
+		return
+	}
+
+	// Set the period and duty cycle, in nanoseconds. This is a 1/10th second cycle
+	pwm.SetPeriod(pwm8_13, 100000000)
+	pwm.SetDuty(pwm8_13, 90000000)
+
+On BeagleBone Black, there are 3 PWM modules, "pwm0", "pwm1" and "pwm2". I am not sure if "pwm1" pins can be assigned, as they are pre-allocaed in the default device tree config, but in theory it should be possible to use them. By default, these pins can be used:
+
+  * pwm0: P9.21 (ehrpwm0B) and P9.22 (ehrpwm0A)
+  *	pwm2: P8.13 (ehrpwm2A) and P8.19 (ehrpwm2A)
+
+This is a preliminary implementation; only P8.13 (pwm2) has been tested. PWM pins are not present in default device tree. The module will add them as necessary to bonemgr/slots; this will override defaults.
+
+## Devices
+
+There are sub-packages devices that have been made to work with hwio. The currently supported devices include:
+
+  *	GY-520 gyroscope/accelerometer using I2C.
+  * HD-44780 multi-line LCD display. Currently implemented over I2C converter only.
+
+See README.md files in respective directories.
+
+
 ## Driver Selection
 
 The intention of the hwio library is to use uname to attempt to detect the platform and select an appropriate driver (see drivers section below), 
@@ -84,6 +156,7 @@ doesn't work. If you need to set the driver automatically, you can do:
 	hwio.SetDriver(new(BeagleBoneBlackDriver))
 
 This needs to be done before any other hwio calls.
+
 
 ## More Advanced
 
@@ -182,7 +255,7 @@ Some general principles the library attempts to adhere to include:
  	Specifically, pins that don't have mode set may not on a particular hardware
  	configuration even be configured as general purpose I/O. For example, many
  	beaglebone pins have overloaded functions set using a multiplexer, and some may be pre-assigned.
- 	Any pin whose mode is set by PinMode can be assumed to be general purpose I/O, and
+	Any pin whose mode is set by PinMode can be assumed to be general purpose I/O, and
  	likewise if it is not set, it could have any multiplexed behaviour assigned
  	to it. A consequence is that unlike Arduino, PinMode *must* be called before
  	a pin is used.
@@ -226,7 +299,6 @@ The caller generally works with logical pin numbers retrieved by GetPin.
 
 ## Things to be done
 
- *	PWM output support (BeagleBone, R-Pi)
  *	Interupts (lib, BeagleBone and R-Pi)
  *	Serial support for UART pins (lib, BeagleBone and R-Pi)
  *	SPI support; consider augmenting ShiftIn and ShiftOut to use hardware pins
