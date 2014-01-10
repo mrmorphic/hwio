@@ -196,7 +196,10 @@ func (module *BBPWMModule) ensureSlot(item string) error {
 	}
 
 	// enable the item
-	return writeStringToFile(path, item)
+	e = writeStringToFile(path, item)
+	// delay a little as it seems to take a bit of time set enable the slot
+	Delay(100)
+	return e
 }
 
 // Needs to be called to allocate the GPIO pin
