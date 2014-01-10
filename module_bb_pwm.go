@@ -166,7 +166,7 @@ func (module *BBPWMModule) makeOpenPin(pin Pin) (*BBPWMModuleOpenPin, error) {
 	module.openPins[pin] = result
 
 	// ensure polarity is 0, so that the duty time represents the time the signal is high.
-	e = writeStringToFile(result.polarityFile, "0")
+	e = WriteStringToFile(result.polarityFile, "0")
 	if e != nil {
 		return nil, e
 	}
@@ -196,7 +196,7 @@ func (module *BBPWMModule) ensureSlot(item string) error {
 	}
 
 	// enable the item
-	e = writeStringToFile(path, item)
+	e = WriteStringToFile(path, item)
 	// delay a little as it seems to take a bit of time set enable the slot
 	Delay(100)
 	return e
@@ -213,7 +213,7 @@ func (op *BBPWMModuleOpenPin) closePin() error {
 // Set the period in nanoseconds. On BBB, maximum is 1 second (1,000,000,000ns)
 func (op *BBPWMModuleOpenPin) setPeriod(ns int64) error {
 	s := strconv.FormatInt(int64(ns), 10)
-	e := writeStringToFile(op.periodFile, s)
+	e := WriteStringToFile(op.periodFile, s)
 	if e != nil {
 		return e
 	}
@@ -223,7 +223,7 @@ func (op *BBPWMModuleOpenPin) setPeriod(ns int64) error {
 
 func (op *BBPWMModuleOpenPin) setDuty(ns int64) error {
 	s := strconv.FormatInt(int64(ns), 10)
-	e := writeStringToFile(op.dutyFile, s)
+	e := WriteStringToFile(op.dutyFile, s)
 	if e != nil {
 		return e
 	}
@@ -233,8 +233,8 @@ func (op *BBPWMModuleOpenPin) setDuty(ns int64) error {
 
 func (op *BBPWMModuleOpenPin) enabled(e bool) error {
 	if e {
-		return writeStringToFile(op.runFile, "1")
+		return WriteStringToFile(op.runFile, "1")
 	} else {
-		return writeStringToFile(op.runFile, "0")
+		return WriteStringToFile(op.runFile, "0")
 	}
 }

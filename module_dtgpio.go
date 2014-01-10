@@ -161,7 +161,7 @@ func (module *DTGPIOModule) makeOpenGPIOPin(pin Pin) (*DTGPIOModuleOpenPin, erro
 // Needs to be called to allocate the GPIO pin
 func (op *DTGPIOModuleOpenPin) gpioExport() error {
 	s := strconv.FormatInt(int64(op.gpioLogical), 10)
-	e := writeStringToFile("/sys/class/gpio/export", s)
+	e := WriteStringToFile("/sys/class/gpio/export", s)
 	if e != nil {
 		return e
 	}
@@ -174,7 +174,7 @@ func (op *DTGPIOModuleOpenPin) gpioExport() error {
 // Needs to be called to allocate the GPIO pin
 func (op *DTGPIOModuleOpenPin) gpioUnexport() error {
 	s := strconv.FormatInt(int64(op.gpioLogical), 10)
-	e := writeStringToFile("/sys/class/gpio/unexport", s)
+	e := WriteStringToFile("/sys/class/gpio/unexport", s)
 	if e != nil {
 		return e
 	}
@@ -188,7 +188,7 @@ func (op *DTGPIOModuleOpenPin) gpioDirection(dir string) error {
 		return errors.New("direction must be in or out")
 	}
 	f := op.gpioBaseName + "/direction"
-	e := writeStringToFile(f, dir)
+	e := WriteStringToFile(f, dir)
 
 	mode := os.O_WRONLY | os.O_TRUNC
 	if dir == "in" {

@@ -67,7 +67,7 @@ func (module *DTAnalogModule) Enable() error {
 		}
 
 		// enable analog
-		e = writeStringToFile(path, "cape-bone-iio")
+		e = WriteStringToFile(path, "cape-bone-iio")
 		if e != nil {
 			return e
 		}
