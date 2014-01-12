@@ -9,7 +9,7 @@
 package gy520
 
 import (
-	"hwio"
+	"github.com/mrmorphic/hwio"
 )
 
 const (
