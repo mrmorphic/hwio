@@ -85,12 +85,12 @@ func (d *MCP23017) GetPortB() (byte, error) {
 
 // Write to port A
 func (d *MCP23017) SetPortA(value byte) error {
-	return d.device.WriteByte(REG_OLATA, value)
+	return d.device.WriteByte(REG_GPIOA, value)
 }
 
 // Write to port B
 func (d *MCP23017) SetPortB(value byte) error {
-	return d.device.WriteByte(REG_OLATA, value)
+	return d.device.WriteByte(REG_GPIOB, value)
 }
 
 // Set pull-up configuration for port A. If a bit is 1 and the corresponding pin is
