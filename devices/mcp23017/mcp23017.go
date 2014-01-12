@@ -6,7 +6,7 @@ package mcp23017
 
 import (
 	"fmt"
-	"hwio"
+	"github.com/mrmorphic/hwio"
 )
 
 const (
