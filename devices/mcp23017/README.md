@@ -20,7 +20,7 @@ the bus.
 	m, e := hwio.GetModule("i2c2")
 
 	// Assert that it is an I2C module
-	i2c := m.(I2CModule)
+	i2c := m.(hwio.I2CModule)
 
 Get the MCP-23017 device, so you make requests of it:
 
