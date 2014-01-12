@@ -1,7 +1,7 @@
 package servo
 
 import (
-	"hwio"
+	"github.com/mrmorphic/hwio"
 )
 
 const (
