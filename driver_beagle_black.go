@@ -1,7 +1,6 @@
 package hwio
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -198,7 +197,11 @@ func (d *BeagleBoneBlackDriver) initialiseModules() error {
 	}
 
 	// Create the leds module which is BBB-specific. There are no options.
-	leds := newBBBLEDModule("leds")
+	leds := NewDTLEDModule("leds")
+	e = leds.SetOptions(d.getLEDOptions("leds"))
+	if e != nil {
+		return e
+	}
 
 	d.modules["gpio"] = gpio
 	d.modules["analog"] = analog
@@ -286,6 +289,20 @@ func (d *BeagleBoneBlackDriver) getPWMOptions(name string) map[string]interface{
 			pins[Pin(i)] = &BBPWMModulePinDef{pin: Pin(i), name: n}
 		}
 	}
+
+	result["pins"] = pins
+
+	return result
+}
+
+func (d *BeagleBoneBlackDriver) getLEDOptions(name string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	pins := make(DTLEDModulePins)
+	pins["USR0"] = "/sys/class/leds/beaglebone:green:usr0/"
+	pins["USR1"] = "/sys/class/leds/beaglebone:green:usr1/"
+	pins["USR2"] = "/sys/class/leds/beaglebone:green:usr2/"
+	pins["USR3"] = "/sys/class/leds/beaglebone:green:usr3/"
 
 	result["pins"] = pins
 
@@ -387,82 +404,4 @@ func (module *bbbPreassignedModule) Disable() error {
 
 func (module *bbbPreassignedModule) GetName() string {
 	return module.name
-}
-
-// This is a module to support the onboard LED functions. While these are actually attached to GPIO pins that
-// are not exposed on the expansion headers, we can't use GPIO, as a driver is present that provides ways
-// to map what is displayed on the LEDs.
-type (
-	BBBLEDModule struct {
-		name string
-	}
-
-	BBBLEDModuleLED struct {
-		path           string
-		currentTrigger string
-	}
-)
-
-func newBBBLEDModule(name string) *BBBLEDModule {
-	return &BBBLEDModule{name: name}
-}
-
-func (m *BBBLEDModule) Enable() error {
-	return nil
-}
-
-func (m *BBBLEDModule) Disable() error {
-	return nil
-}
-
-func (m *BBBLEDModule) GetName() string {
-	return m.name
-}
-
-func (m *BBBLEDModule) SetOptions(map[string]interface{}) error {
-	return nil
-}
-
-// Get a LED to manipulate. 'led' must be 0 to 3.
-func (m *BBBLEDModule) GetLED(led int) (*BBBLEDModuleLED, error) {
-	if led < 0 || led > 3 {
-		return nil, fmt.Errorf("GetLED: invalid led %d, must be between 0 and 3", led)
-	}
-	result := &BBBLEDModuleLED{}
-	result.path = fmt.Sprintf("/sys/class/leds/beaglebone:green:usr%d/", led)
-	result.currentTrigger = ""
-	return result, nil
-}
-
-// Set the trigger for the LED. The values come from /sys/class/leds/*/trigger. This tells the driver what should be displayed on the
-// LED. The useful values include:
-// - none		The LED can be set up programmatic control. If you want to turn a LED on and off yourself, you want
-//				this mode.
-// - nand-disk	Automatically displays nand disk activity
-// - mmc0		Show MMC0 activity.
-// - mmc1		Show MMC1 activity. By default, USR3 is configured for mmc1.
-// - timer
-// - heartbeat	Show a heartbeat for system functioning. By default, USR0 is configured for heartbeat.
-// - cpu0		Show CPU activity. By default, USR2 is configured for cpu0.
-// System defaults (at least for Angstrom are):
-// - USR0: heartbeat
-// - USR1: mmc0
-// - USR2: cpu0
-// - USR3: mmc1
-func (led *BBBLEDModuleLED) SetTrigger(trigger string) error {
-	led.currentTrigger = trigger
-	return WriteStringToFile(led.path+"trigger", trigger)
-}
-
-func (led *BBBLEDModuleLED) SetOn(on bool) error {
-	if led.currentTrigger != "none" {
-		return errors.New("LED SetOn requires that the LED trigger has been set to 'none'")
-	}
-
-	v := "0"
-	if on {
-		v = "1"
-	}
-
-	return WriteStringToFile(led.path+"brightness", v)
 }

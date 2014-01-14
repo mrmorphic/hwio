@@ -83,3 +83,16 @@ type SPIModule interface {
 	// Select the device, and read data from it
 	Read(slaveSelect int, data []byte) (nBytes int, e error)
 }
+
+// Interface for controlling on-board LEDs, modelled on /sys/class/leds
+type LEDModule interface {
+	Module
+
+	GetLED(led string) (LEDModuleLED, error)
+}
+
+// LED from the an LEDModule
+type LEDModuleLED interface {
+	SetTrigger(trigger string) error
+	SetOn(on bool) error
+}

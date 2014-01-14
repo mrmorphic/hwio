@@ -88,8 +88,16 @@ func (d *RaspberryPiDTDriver) initialiseModules() error {
 		return e
 	}
 
+	// Create the leds module which is BBB-specific. There are no options.
+	leds := NewDTLEDModule("leds")
+	e = leds.SetOptions(d.getLEDOptions("leds"))
+	if e != nil {
+		return e
+	}
+
 	d.modules["gpio"] = gpio
 	d.modules["i2c"] = i2c
+	d.modules["leds"] = leds
 
 	return nil
 }
@@ -125,6 +133,17 @@ func (d *RaspberryPiDTDriver) getI2COptions() map[string]interface{} {
 	} else {
 		result["device"] = "/dev/i2c-1"
 	}
+
+	return result
+}
+
+func (d *RaspberryPiDTDriver) getLEDOptions(name string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	pins := make(DTLEDModulePins)
+	pins["OK"] = "/sys/class/leds/led0/"
+
+	result["pins"] = pins
 
 	return result
 }
