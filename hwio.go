@@ -139,9 +139,10 @@ func GetDefinedPins() HardwarePinMap {
 // @todo GetPin: consider making it case-insensitive on name
 // @todo GetPin: consider allowing an int or int as string to identify logical pin directly
 func GetPin(pinName string) (Pin, error) {
+	pl := strings.ToLower(pinName)
 	for pin, pinDef := range definedPins {
 		for _, name := range pinDef.names {
-			if name == pinName {
+			if strings.ToLower(name) == pl {
 				return pin, nil
 			}
 		}
