@@ -80,6 +80,18 @@ There is an implementation of the Arduino map() function:
 	// map a value in range 0-1800 to new range 0-1023
 	i := hwio.Map(value, 0, 1800, 0, 1023)
 
+## On-board LEDs
+
+On-board LEDs can be controlled using the helper function Led:
+
+	// Turn on usr0 LED
+	e := hwio.Led("usr0", true)
+
+For BeagleBone, the LEDs are named "usr0", "usr1", "usr2" and "usr3" (case-insensitive). For Raspberry Pi only one of the LEDs is controllable,
+which is named "OK".
+
+The Led function is a helper that uses the LED module. This provides more options to control what is displayed on each LED.
+
 ## I2C
 
 I2C is supported on BeagleBone Black and Raspberry Pi. It is accessible through the "i2c" module (BBB i2c2 pins), as follows:
@@ -155,6 +167,14 @@ There are sub-packages under 'devices' that have been made to work with hwio. Th
 
 See README.md files in respective directories.
 
+## CPU Info
+
+The helper function CpuInfo can tell you properties about your device. This is based on /proc/cpuinfo.
+
+e.g.
+	model := hwio.CpuInfo(0, "model name")
+
+The properties available from device to device. Processor 0 is always present.
 
 ## Driver Selection
 
