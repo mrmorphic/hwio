@@ -287,6 +287,27 @@ func AnalogRead(pin Pin) (int, error) {
 	return analog.AnalogRead(pin)
 }
 
+// Helper to turn an on-board LED on or off. Uses LED module
+func Led(name string, on bool) error {
+	m, e := GetModule("leds")
+	if e != nil {
+		return e
+	}
+
+	leds := m.(LEDModule)
+	led, e := leds.GetLED(name)
+	if e != nil {
+		return e
+	}
+
+	e = led.SetTrigger("none")
+	if e != nil {
+		return e
+	}
+
+	return led.SetOn(on)
+}
+
 // Delay execution by the specified number of milliseconds. This is a helper
 // function for similarity with Arduino. It is implemented using standard go
 // time package.
