@@ -299,10 +299,10 @@ func (d *BeagleBoneBlackDriver) getLEDOptions(name string) map[string]interface{
 	result := make(map[string]interface{})
 
 	pins := make(DTLEDModulePins)
-	pins["USR0"] = "/sys/class/leds/beaglebone:green:usr0/"
-	pins["USR1"] = "/sys/class/leds/beaglebone:green:usr1/"
-	pins["USR2"] = "/sys/class/leds/beaglebone:green:usr2/"
-	pins["USR3"] = "/sys/class/leds/beaglebone:green:usr3/"
+	pins["usr0"] = "/sys/class/leds/beaglebone:green:usr0/"
+	pins["usr1"] = "/sys/class/leds/beaglebone:green:usr1/"
+	pins["usr2"] = "/sys/class/leds/beaglebone:green:usr2/"
+	pins["usr3"] = "/sys/class/leds/beaglebone:green:usr3/"
 
 	result["pins"] = pins
 

@@ -141,7 +141,7 @@ func (d *RaspberryPiDTDriver) getLEDOptions(name string) map[string]interface{} 
 	result := make(map[string]interface{})
 
 	pins := make(DTLEDModulePins)
-	pins["OK"] = "/sys/class/leds/led0/"
+	pins["ok"] = "/sys/class/leds/led0/"
 
 	result["pins"] = pins
 

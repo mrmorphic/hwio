@@ -3,6 +3,7 @@ package hwio
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // This is a module to support the onboard LED functions. While these are actually attached to GPIO pins that
@@ -12,6 +13,8 @@ type (
 	DTLEDModule struct {
 		name        string
 		definedPins DTLEDModulePins
+
+		leds map[string]*DTLEDModuleLED
 	}
 
 	DTLEDModuleLED struct {
@@ -24,7 +27,7 @@ type (
 )
 
 func NewDTLEDModule(name string) *DTLEDModule {
-	return &DTLEDModule{name: name}
+	return &DTLEDModule{name: name, leds: make(map[string]*DTLEDModuleLED)}
 }
 
 func (m *DTLEDModule) Enable() error {
@@ -53,10 +56,17 @@ func (m *DTLEDModule) SetOptions(options map[string]interface{}) error {
 
 // Get a LED to manipulate. 'led' must be 0 to 3.
 func (m *DTLEDModule) GetLED(led string) (*DTLEDModuleLED, error) {
+	led = strings.ToLower(led)
+
+	if ol := m.leds[led]; ol != nil {
+		return ol, nil
+	}
+
 	if pin := m.definedPins[led]; pin != "" {
 		result := &DTLEDModuleLED{}
 		result.path = pin
 		result.currentTrigger = ""
+		m.leds[led] = result
 		return result, nil
 	} else {
 		return nil, fmt.Errorf("GetLED: invalid led '%s'", led)
