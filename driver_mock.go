@@ -85,24 +85,6 @@ func (d *TestDriver) PinMap() HardwarePinMap {
 	}
 
 	return result
-	// 	general := []Capability{CAP_INPUT, CAP_OUTPUT}
-	// 	analog := []Capability{CAP_ANALOG_IN}
-	// 	pwm := []Capability{CAP_INPUT, CAP_OUTPUT, CAP_PWM}
-	// 	readonly := []Capability{CAP_INPUT}
-	// 	writeonly := []Capability{CAP_OUTPUT}
-
-	// 	pinMap = make(HardwarePinMap)
-
-	// 	pinMap.add(0, []string{"HWPin0"}, general)
-	// 	pinMap.add(1, []string{"HWPin1"}, readonly)
-	// 	pinMap.add(2, []string{"HWPin2"}, writeonly)
-	// 	pinMap.add(3, []string{"HWPin3"}, general)
-	// 	pinMap.add(4, []string{"HWPin4"}, general)
-	// 	pinMap.add(5, []string{"HWPin5"}, general)
-	// 	pinMap.add(6, []string{"HWPin6"}, analog)
-	// 	pinMap.add(7, []string{"HWPin7"}, analog)
-	// 	pinMap.add(8, []string{"HWPin8"}, pwm)
-	// 	return
 }
 
 // // Getter that gets the pinModes map on demand, and creating it on first

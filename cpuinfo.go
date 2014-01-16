@@ -51,8 +51,6 @@ func loadCpuInfo() {
 
 	}
 
-	fmt.Printf("cpuInfo: %s\n", cpuInfo)
-
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
