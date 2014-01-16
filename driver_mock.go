@@ -1,10 +1,10 @@
 package hwio
 
-// // A mock driver used for unit testing.
-// import (
-// 	"errors"
-// 	"fmt"
-// )
+// A mock driver used for unit testing.
+import (
+	// 	"errors"
+	"fmt"
+)
 
 type testDriverPin struct {
 	names   []string
@@ -216,6 +216,9 @@ func (module *testGPIOModule) PinMode(pin Pin, mode PinIOMode) error {
 }
 
 func (module *testGPIOModule) DigitalWrite(pin Pin, value int) error {
+	if module.pinModes[pin] == 0 {
+		return fmt.Errorf("Pin %d has not had mode set", pin)
+	}
 	module.pinValues[pin] = value
 	return nil
 }
@@ -265,5 +268,11 @@ func (module *testAnalogModule) GetName() string {
 }
 
 func (module *testAnalogModule) AnalogRead(pin Pin) (result int, e error) {
+	if pin == 10 {
+		return 1, nil
+	}
+	if pin == 11 {
+		return 1000, nil
+	}
 	return 0, nil
 }
