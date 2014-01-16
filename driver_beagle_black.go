@@ -65,6 +65,7 @@ func (d *BeagleBoneBlackDriver) makePin(names []string, modules []string, gpioLo
 
 func (d *BeagleBoneBlackDriver) createPinData() {
 	d.beaglePins = []*BeaglePin{
+		d.makePin([]string{"dummy"}, []string{"unassignable"}, 0, 0), // 0 - spacer
 		// P8
 		d.makePin([]string{"P8.3", "gpmc_ad6", "gpio1_6"}, []string{"gpio", "emmc2", "preallocated"}, 38, 0), // preassigned via DT in default config
 		d.makePin([]string{"P8.4", "gpmc_ad7", "gpio1_7"}, []string{"gpio", "emmc2", "preallocated"}, 39, 0), // preassigned via DT in default config
