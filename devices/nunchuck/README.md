@@ -51,7 +51,8 @@ methods to fetch the properies you want.
 	roll := controller.GetRoll()
 	pitch := controller.GetPitch()
 
-The device joystick and accelerometer values are initially calibrated to observed values on devices, but you can change these.
+The device joystick and accelerometer values are initially calibrated to zero, but you can change these, and will probably need to.
+Until the accelerometer values are calibrated, roll and pitch values may not be meaningful.
 
 	// calibrate the center position of the joystick to whatever the last read joystick values were.
 	controller.CalibrateJoystick()
