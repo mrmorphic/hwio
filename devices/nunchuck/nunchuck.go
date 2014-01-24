@@ -71,7 +71,10 @@ func NewNunchuck(module hwio.I2CModule) (*Nunchuck, error) {
 // Use Get methods to retrieve sensor values since last call of ReadSensors.
 func (n *Nunchuck) ReadSensors() error {
 	// Get bytes from the sensor, packed into 6 bytes.
-	bytes := n.device.Read(0, 6)
+	bytes, e := n.device.Read(0, 6)
+	if e != nil {
+		return e
+	}
 
 	if len(bytes) < 6 {
 		return fmt.Errorf("Error getting nunchuck data, expected 6 bytes but got %d", len(bytes))
@@ -84,23 +87,25 @@ func (n *Nunchuck) ReadSensors() error {
 	n.lastJoyY = int(bytes[1])
 
 	// bytes[2] - bytes[4] are accelX, accelY and accelZ most significant byte respectively. LSB are in bytes[5]
-	ax := int(bytes[2]<<2 | (bytes[5] >> 2 & 3))
-	ay := int(bytes[3]<<2 | (bytes[5] >> 4 & 3))
-	az := int(bytes[4]<<2 | (bytes[5] >> 6 & 3))
+	ax := int(int8(bytes[2]<<2)) | int((bytes[5]>>2)&3)
+	ay := int(int8(bytes[3]<<2)) | int((bytes[5]>>4)&3)
+	az := int(int8(bytes[4]<<2)) | int((bytes[5]>>6)&3)
 
-	n.lastAccelX = ax - n.zeroAccelX
-	n.lastAccelY = ay - n.zeroAccelY
-	n.lastAccelZ = az - n.zeroAccelZ
+	n.lastAccelX = float32(ax) - n.zeroAccelX
+	n.lastAccelY = float32(ay) - n.zeroAccelY
+	n.lastAccelZ = float32(az) - n.zeroAccelZ
 
-	n.lastZPressed = false
+	n.lastZPressed = true
 	if bytes[5]&1 > 0 {
-		n.lastZPressed = true
+		n.lastZPressed = false
 	}
 
-	n.lastCPressed = false
+	n.lastCPressed = true
 	if bytes[5]&2 > 0 {
-		n.lastCPressed = true
+		n.lastCPressed = false
 	}
+
+	return nil
 }
 
 // Calibrate the joystick to the most recently read values.
@@ -124,7 +129,7 @@ func (n *Nunchuck) GetJoystick() (x int, y int) {
 	return n.lastJoyX, n.lastJoyY
 }
 
-func (n *Nunchuck) GetAccel() (ax float, ay float, az float) {
+func (n *Nunchuck) GetAccel() (ax float32, ay float32, az float32) {
 	return n.lastAccelX, n.lastAccelY, n.lastAccelZ
 }
 
@@ -137,11 +142,11 @@ func (n *Nunchuck) GetCPressed() bool {
 }
 
 // Read roll in degrees, computed from accelerometer
-func (n *Nunchuck) GetRoll() float {
-	return math.Atan2(n.lastAccelX, n.lastAccelZ) / math.Pi * 180.0
+func (n *Nunchuck) GetRoll() float32 {
+	return float32(math.Atan2(float64(n.lastAccelX), float64(n.lastAccelZ)) / math.Pi * 180.0)
 }
 
 // Read pitch in degrees, computed from accelerometer
-func (n *Nunchuck) GetPitch() float {
-	return math.Acos(n.lastAccelY/RADIUS) / math.Pi * 180.0
+func (n *Nunchuck) GetPitch() float32 {
+	return float32(math.Acos(float64(n.lastAccelY)/RADIUS) / math.Pi * 180.0)
 }
