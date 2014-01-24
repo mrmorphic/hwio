@@ -10,6 +10,10 @@ for say a beaglebone could be easily compiled to run on a raspberry pi, maybe on
 To use hwio, you just need to import it into your Go project, initialise modules and pins as
 required, and then use functions that manipulate the pins.
 
+For more information about the library, including pin diagrams for supported boards and tutorials,
+see http://stuffwemade.net/hwio.
+
+
 ## Basic Usage
 
 Initialising a pin looks like this:
@@ -103,7 +107,9 @@ I2C is supported on BeagleBone Black and Raspberry Pi. It is accessible through 
 	}
 	i2c := m.(hwio.I2CModule)
 
-	// Uncomment on Raspberry pi, which doesn't automatically enable i2c bus. BeagleBone does, as the default device tree enables it.
+	// Uncomment on Raspberry pi, which doesn't automatically enable i2c bus. BeagleBone does,
+	// as the default device tree enables it.
+
 	// i2c.Enable()
 	// defer i2c.Disable()
 
@@ -120,8 +126,8 @@ hwio/devices package, so check there first, as the hard work may be done already
 
 ## PWM
 
-PWM support for BeagleBone Black has been added. To use a PWM pin, you need to fetch the module that the PWM belongs to, enable the PWM module
-and pin, and then you can manipulate the period and duty cycle. e.g.
+PWM support for BeagleBone Black has been added. To use a PWM pin, you need to fetch the module that the PWM belongs to,
+enable the PWM module and pin, and then you can manipulate the period and duty cycle. e.g.
 
 	// Get the module
 	m, e := hwio.GetModule("pwm2")
@@ -147,12 +153,15 @@ and pin, and then you can manipulate the period and duty cycle. e.g.
 	pwm.SetPeriod(pwm8_13, 100000000)
 	pwm.SetDuty(pwm8_13, 90000000)
 
-On BeagleBone Black, there are 3 PWM modules, "pwm0", "pwm1" and "pwm2". I am not sure if "pwm1" pins can be assigned, as they are pre-allocaed in the default device tree config, but in theory it should be possible to use them. By default, these pins can be used:
+On BeagleBone Black, there are 3 PWM modules, "pwm0", "pwm1" and "pwm2". I am not sure if "pwm1" pins can be assigned,
+as they are pre-allocated in the default device tree config, but in theory it should be possible to use them. By
+default, these pins can be used:
 
   * pwm0: P9.21 (ehrpwm0B) and P9.22 (ehrpwm0A)
   *	pwm2: P8.13 (ehrpwm2A) and P8.19 (ehrpwm2A)
 
-This is a preliminary implementation; only P8.13 (pwm2) has been tested. PWM pins are not present in default device tree. The module will add them as necessary to bonemgr/slots; this will override defaults.
+This is a preliminary implementation; only P8.13 (pwm2) has been tested. PWM pins are not present in default device tree.
+The module will add them dynamically as necessary to bonemgr/slots; this will override defaults.
 
 ## Servo
 
@@ -164,6 +173,8 @@ There are sub-packages under 'devices' that have been made to work with hwio. Th
 
   *	GY-520 gyroscope/accelerometer using I2C.
   * HD-44780 multi-line LCD display. Currently implemented over I2C converter only.
+  * MCP23017 16-bit port extender over I2C.
+  * Nintendo Nunchuck over I2C.
 
 See README.md files in respective directories.
 
@@ -185,11 +196,6 @@ doesn't work. If you need to set the driver automatically, you can do:
 	hwio.SetDriver(new(BeagleBoneBlackDriver))
 
 This needs to be done before any other hwio calls.
-
-
-## More Information
-
-For more information about the library, including pin diagrams for supported boards, see http://stuffwemade.net/hwio.
 
 
 ## BIG SHINY DISCLAIMER
