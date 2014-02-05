@@ -15,17 +15,18 @@ Import the packages:
 Initialise by fetching an i2c module from the driver. You can get instances of devices attached to
 the bus.
 
-	// Get the i2c module from the driver. This is an example for the BeagleBone Black, which exposes i2c2.
-	m, e := hwio.GetModule("i2c2")
+	// Get the i2c module from the driver. i2c is the canonical name. On the BeagleBone, it can also
+	// be referred to as i2c2.
+	m, e := hwio.GetModule("i2c")
 
 	// Assert that it is an I2C module
-	i2c := m.(I2CModule)
+	i2c := m.(hwio.I2CModule)
 
 
 Get the HD44780 device, so you make requests of it:
 
 	// Get a display device on this i2c bus
-	display := hd44780.NewHD44780(i2c)
+	display := hd44780.NewHD44780(i2c, 0x20)
 
 	// Initialise the display with the size of display you have.
 	display.Init(20, 4)
