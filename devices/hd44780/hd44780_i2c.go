@@ -93,7 +93,12 @@ type HD44780 struct {
 type I2CExpanderProfile int
 
 const (
+	// Profile constants for pre-defined device profiles. See http://forum.arduino.cc/index.php?topic=158312.15
+
+	// mjkdz devices are commonly found in the wild
 	PROFILE_MJKDZ I2CExpanderProfile = iota
+
+	// devices based on PCF8574 are also around, but wired a little bit differently.
 	PROFILE_PCF8574
 )
 
