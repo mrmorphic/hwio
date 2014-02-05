@@ -54,15 +54,19 @@ const (
 	LCD_5x8DOTS  byte = 0x00
 
 	// flags for backlight control
-	LCD_BACKLIGHT   byte = 0x00
-	LCD_NOBACKLIGHT byte = 0x80
+	//	LCD_BACKLIGHT   byte = 0x00
+	//	LCD_NOBACKLIGHT byte = 0x80
 
-	En byte = 0x10 // B00010000 // Enable bit
-	Rw byte = 0x20 // B00100000 // Read/Write bit
-	Rs byte = 0x40 // B01000000 // Register select bit
-	// En byte = 0x40 // B00010000 // Enable bit
+	// En byte = 0x10 // B00010000 // Enable bit
 	// Rw byte = 0x20 // B00100000 // Read/Write bit
-	// Rs byte = 0x10 // B01000000 // Register select bit
+	// Rs byte = 0x40 // B01000000 // Register select bit
+	//	// En byte = 0x40 // B00010000 // Enable bit
+	//	// Rw byte = 0x20 // B00100000 // Read/Write bit
+	//	// Rs byte = 0x10 // B01000000 // Register select bit
+
+	// constants for backlight polarity
+	POSITIVE = 0
+	NEGATIVE = 1
 )
 
 type HD44780 struct {
@@ -72,11 +76,51 @@ type HD44780 struct {
 	displayMode     byte
 	numLines        int
 	backlight       byte
+
+	// the bit masks of the LCD pins on the port extender.
+	d7 byte
+	d6 byte
+	d5 byte
+	d4 byte
+	bl byte
+	en byte
+	rs byte
+	rw byte
+
+	blPolarity int
 }
 
-func NewHD44780(module hwio.I2CModule, address int) *HD44780 {
+type I2CExpanderProfile int
+
+const (
+	PROFILE_MJKDZ I2CExpanderProfile = iota
+	PROFILE_PCF8574
+)
+
+func NewHD44780(module hwio.I2CModule, address int, profile I2CExpanderProfile) *HD44780 {
+	switch profile {
+	case PROFILE_MJKDZ:
+		return NewHD44780Extended(module, address, 4, 5, 6, 0, 1, 2, 3, 7, NEGATIVE)
+	case PROFILE_PCF8574:
+		return NewHD44780Extended(module, address, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE)
+	}
+
+	return nil
+}
+
+func NewHD44780Extended(module hwio.I2CModule, address int, en int, rw int, rs int, d4 int, d5 int, d6 int, d7 int, bl int, polarity int) *HD44780 {
 	device := module.GetDevice(address)
-	result := &HD44780{device: device}
+	result := &HD44780{
+		device:     device,
+		d7:         1 << uint16(d7),
+		d6:         1 << uint16(d6),
+		d5:         1 << uint16(d5),
+		d4:         1 << uint16(d4),
+		bl:         1 << uint16(bl),
+		en:         1 << uint16(en),
+		rs:         1 << uint16(rs),
+		rw:         1 << uint16(rw),
+		blPolarity: polarity}
 
 	return result
 }
@@ -100,7 +144,7 @@ func (display *HD44780) Init(cols int, lines int) {
 	hwio.DelayMicroseconds(50000)
 
 	// Now we pull both RS and R/W low to begin commands
-	display.backlight = LCD_NOBACKLIGHT
+	display.backlight = display.bl
 	display.expanderWrite(display.backlight) // reset expanderand turn backlight off (Bit 8 =1)
 	hwio.Delay(1000)
 
@@ -109,19 +153,19 @@ func (display *HD44780) Init(cols int, lines int) {
 	// figure 24, pg 46
 
 	// we start in 8bit mode, try to set 4 bit mode
-	display.write4bits(0x03)
+	display.write4bits(0x03, 0)
 	hwio.DelayMicroseconds(4500) // wait min 4.1ms
 
 	// // second try
-	display.write4bits(0x03)
+	display.write4bits(0x03, 0)
 	hwio.DelayMicroseconds(4500) // wait min 4.1ms
 
 	// // third go!
-	display.write4bits(0x03)
+	display.write4bits(0x03, 0)
 	hwio.DelayMicroseconds(150)
 
 	// // finally, set to 4-bit interface
-	display.write4bits(0x02)
+	display.write4bits(0x02, 0)
 
 	// set # lines, font size, etc.
 	display.Command(LCD_FUNCTIONSET | display.displayFunction)
@@ -236,9 +280,9 @@ func (display *HD44780) NoAutoscroll() {
 
 func (display *HD44780) SetBacklight(on bool) {
 	if on {
-		display.backlight = LCD_BACKLIGHT
+		display.backlight = 1 << uint16(display.bl)
 	} else {
-		display.backlight = LCD_NOBACKLIGHT
+		display.backlight = 0
 	}
 	display.expanderWrite(0)
 }
@@ -248,32 +292,49 @@ func (display *HD44780) Command(command byte) {
 }
 
 func (display *HD44780) Data(data byte) {
-	display.send(data, Rs)
+	display.send(data, display.rs)
 }
 
 func (display *HD44780) send(data byte, mode byte) {
 	highnib := data >> 4
 	lownib := data & 0x0F
-	display.write4bits(highnib | mode)
-	display.write4bits(lownib | mode)
+	display.write4bits(highnib, mode)
+	display.write4bits(lownib, mode)
 }
 
-// write 4 bits, in the low part of the byte
-func (display *HD44780) write4bits(data byte) {
-	display.expanderWrite(data)
-	display.pulseEnable(data)
+// write 4 bits to the port extender. The low 4 bits of data are mapped to the d7-d4 pins on the device,
+// so you cannot OR other control bits to the data. Mode is provided for that.
+func (display *HD44780) write4bits(data byte, mode byte) {
+	// map the 4 low bits of data into d
+	var d byte = 0
+	if data&0x08 != 0 {
+		d |= display.d7
+	}
+	if data&0x04 != 0 {
+		d |= display.d6
+	}
+	if data&0x02 != 0 {
+		d |= display.d5
+	}
+	if data&0x01 != 0 {
+		d |= display.d4
+	}
+	display.expanderWrite(d | mode)
+	display.pulseEnable(d | mode)
 }
 
+// Write a byte to the port expander. The bits are already assumed to be in the right positions for
+// the device profile.
 func (display *HD44780) expanderWrite(data byte) {
 	display.device.WriteByte(data|display.backlight, 0)
 }
 
 func (display *HD44780) pulseEnable(data byte) {
-	display.expanderWrite(data | En) // En high
-	hwio.DelayMicroseconds(1)        // enable pulse must be >450ns
+	display.expanderWrite(data | display.en) // En high
+	hwio.DelayMicroseconds(1)                // enable pulse must be >450ns
 
-	display.expanderWrite(data & ^byte(En)) // En low
-	hwio.DelayMicroseconds(50)              // commands need > 37us to settle
+	display.expanderWrite(data & ^display.en) // En low
+	hwio.DelayMicroseconds(50)                // commands need > 37us to settle
 }
 
 func (display *HD44780) Write(p []byte) (n int, err error) {
