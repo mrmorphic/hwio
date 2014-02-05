@@ -25,8 +25,10 @@ the bus.
 
 Get the HD44780 device, so you make requests of it:
 
-	// Get a display device on this i2c bus
-	display := hd44780.NewHD44780(i2c, 0x20)
+	// Get a display device on this i2c bus. You need to provide it a device profile. Two profiles
+	// are currently implemented, PROFILE_MJKDZ and PROFILE_PCF8574, corresponding to two commonly found
+	// port extenders used to interface to LCD displays.
+	display := hd44780.NewHD44780(i2c, 0x20, hd44780.PROFILE_MJKDZ)
 
 	// Initialise the display with the size of display you have.
 	display.Init(20, 4)
@@ -58,6 +60,23 @@ To display things, you can:
 Note that characters that are output to the device are not necessarily displayed consequetively. In particular wrapping may not work
 as you expect. This is because of how the display unit maps it's display buffer to positions on the screen. This is described in
 the datasheet for the HD44780 unit.
+
+An alternative way to create the device is to use NewHD44780Extended instead of NewHD44780. This is useful if you have an i2c extender that
+does not confirm to the builtin profiles:
+
+	display := NewHD44780Extended(i2c, 0x27,
+		0, // en
+		1, // rw
+		2, // rs
+		4, // d4
+		5, // d5
+		6, // d6
+		7, // d7polarity int) *HD44780 {
+		3, // backlight,
+		hd44780.POSITIVE) // polarity
+
+The pin values are the bit positions for that pin, with 7 being MSB and0 being LSB. The underlying assumption
+is that the port extender is 8 bit. This package will not work for 16 bit extenders, for example.
 
 # Notes
 
