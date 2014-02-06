@@ -285,7 +285,7 @@ func (display *HD44780) NoAutoscroll() {
 
 func (display *HD44780) SetBacklight(on bool) {
 	if on {
-		display.backlight = 1 << uint16(display.bl)
+		display.backlight = display.bl
 	} else {
 		display.backlight = 0
 	}
