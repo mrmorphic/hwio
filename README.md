@@ -84,6 +84,14 @@ There is an implementation of the Arduino map() function:
 	// map a value in range 0-1800 to new range 0-1023
 	i := hwio.Map(value, 0, 1800, 0, 1023)
 
+To pulse a GPIO pin (must have been assigned), you can use the Pulse function:
+
+	e := hwio.Pulse(somePin, hwio.HIGH, 1500)
+
+The second parameter is the logic level of the active level of the pulse. First the function sets the pin to
+the inactive state and then to the active state, before waiting the specified number of microseconds, and setting it inactive again.
+
+
 ## On-board LEDs
 
 On-board LEDs can be controlled using the helper function Led:
