@@ -266,6 +266,36 @@ func DigitalRead(pin Pin) (result int, e error) {
 	return gpio.DigitalRead(pin)
 }
 
+// given a logic level of HIGH or LOW, return the opposite. Invalid values returned as LOW.
+func Negate(logicLevel int) int {
+	if logicLevel == LOW {
+		return HIGH
+	}
+	return LOW
+}
+
+// Helper function to pulse a pin, which must have been set as GPIO.
+// 'active' is LOW or HIGH. Pulse sets pin to inactive, then active for
+// 'durationMicroseconds' and the back to inactive.
+func Pulse(pin Pin, active int, durationMicroseconds int) error {
+	// set to inactive state, in case it wasn't already
+	e := DigitalWrite(pin, Negate(active))
+	if e != nil {
+		return e
+	}
+
+	// set to active state
+	e = DigitalWrite(pin, active)
+	if e != nil {
+		return e
+	}
+
+	DelayMicroseconds(durationMicroseconds)
+
+	// finally reset to inactive state
+	return DigitalWrite(pin, Negate(active))
+}
+
 // Helper function to get GPIO module
 func GetAnalogModule() (AnalogModule, error) {
 	m, e := GetModule("analog")
