@@ -86,6 +86,9 @@ func determineDriver() {
 	} else if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") {
 		// @todo test for pre-3.7 kernels
 		SetDriver(new(RaspberryPiDTDriver))
+	} else if strings.Contains(s, "ubuntu-armhf") && strings.Contains(s, "-bone") {
+		// Ubuntu on ARM with -bone suffix as part of the kernel version.
+		SetDriver(new(BeagleBoneBlackDriver))
 	} else {
 		// file, e := os.Open("/etc/rpi-issue") // test for existence (only)
 		// if e == nil {
