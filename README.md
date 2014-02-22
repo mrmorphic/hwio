@@ -2,10 +2,10 @@
 
 ## Introduction
 
-hwio is a Go library for interfacing with hardware I/O, particularly on SoC-based boards.
-It is loosely modelled on the Arduino programming style, but deviating where that doesn't make sense in
+hwio is a Go library for interfacing with hardware I/O, particularly on SoC-based boards such as BeagleBone Black and
+Raspberry Pi. It is loosely modelled on the Arduino programming style, but deviating where that doesn't make sense in
 Go. It makes use of a thin hardware abstraction via an interface so a program written against the library
-for say a beaglebone could be easily compiled to run on a raspberry pi, maybe only changing pin references.
+for say a BeagleBone could be easily compiled to run on a Raspberry Pi, maybe only changing pin references.
 
 To use hwio, you just need to import it into your Go project, initialise modules and pins as
 required, and then use functions that manipulate the pins.
