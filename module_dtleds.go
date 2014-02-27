@@ -55,7 +55,7 @@ func (m *DTLEDModule) SetOptions(options map[string]interface{}) error {
 }
 
 // Get a LED to manipulate. 'led' must be 0 to 3.
-func (m *DTLEDModule) GetLED(led string) (*DTLEDModuleLED, error) {
+func (m *DTLEDModule) GetLED(led string) (LEDModuleLED, error) {
 	led = strings.ToLower(led)
 
 	if ol := m.leds[led]; ol != nil {
