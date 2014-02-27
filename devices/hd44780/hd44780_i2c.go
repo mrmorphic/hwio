@@ -150,7 +150,7 @@ func (display *HD44780) Init(cols int, lines int) {
 
 	// Now we pull both RS and R/W low to begin commands
 	display.backlight = display.bl
-	display.expanderWrite(display.backlight) // reset expanderand turn backlight off (Bit 8 =1)
+	display.expanderWrite(display.backlight) // reset expander and turn backlight off (Bit 8 =1)
 	hwio.Delay(1000)
 
 	//put the LCD into 4 bit mode
