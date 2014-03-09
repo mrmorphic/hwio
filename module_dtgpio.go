@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 type DTGPIOModule struct {
@@ -168,6 +169,8 @@ func (op *DTGPIOModuleOpenPin) gpioExport() error {
 
 	// calculate the base name for the gpio pin
 	op.gpioBaseName = "/sys/class/gpio/gpio" + strconv.Itoa(op.gpioLogical)
+	// Wait 1 sec to allow udev rules (if any) to be apply before reading or writing to the GPIO pin
+	time.Sleep(1 * time.Second)
 	return nil
 }
 
