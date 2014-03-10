@@ -3,7 +3,9 @@ package hwio
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -66,10 +68,21 @@ func (module *DTAnalogModule) Enable() error {
 			return e
 		}
 
-		// enable analog
-		WriteStringToFile(path, "cape-bone-iio")
+		//check if analog is already enable
+		slotsData, e := ioutil.ReadFile(path)
 		if e != nil {
 			return e
+		}
+		var overlayName = "cape-bone-iio"
+		overlayRegexp := regexp.MustCompile(overlayName)
+		analogEnable := overlayRegexp.FindAll(slotsData, 1)
+
+		if analogEnable == nil {
+			// enable analog
+			e = WriteStringToFile(path, overlayName)
+			if e != nil {
+				return e
+			}
 		}
 
 		// determine path where analog files are
@@ -77,6 +90,7 @@ func (module *DTAnalogModule) Enable() error {
 		if e != nil {
 			return e
 		}
+
 		if path == "" {
 			return errors.New("Could not locate /sys/devices/ocp.*/helper.*/AIN0")
 		}
@@ -117,14 +131,13 @@ func (module *DTAnalogModule) GetName() string {
 	return module.name
 }
 
-// func (module *DTAnalogModule) AnalogWrite(pin Pin, value int) (e error) {
-// 	return nil
-// }
-
 func (module *DTAnalogModule) AnalogRead(pin Pin) (value int, e error) {
 	openPin := module.openPins[pin]
 	if openPin == nil {
 		openPin, e = module.makeOpenAnalogPin(pin)
+		if e != nil {
+			return _, e
+		}
 	}
 	return openPin.analogGetValue()
 }
@@ -151,11 +164,14 @@ func (op *DTAnalogModuleOpenPin) analogOpen() error {
 }
 
 func (op *DTAnalogModuleOpenPin) analogGetValue() (int, error) {
-	op.analogOpen()
-
 	var value int
+	//Open if not open already
+	if op.valueFile == nil {
+		//Open the PIN for read
+		op.analogOpen()
+	}
+
 	_, e := fmt.Fscanf(op.valueFile, "%d\n", &value)
-	op.analogClose()
 
 	return value, e
 }
