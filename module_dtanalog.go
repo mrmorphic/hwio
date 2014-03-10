@@ -136,7 +136,7 @@ func (module *DTAnalogModule) AnalogRead(pin Pin) (value int, e error) {
 	if openPin == nil {
 		openPin, e = module.makeOpenAnalogPin(pin)
 		if e != nil {
-			return _, e
+			return 0, e
 		}
 	}
 	return openPin.analogGetValue()
