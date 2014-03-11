@@ -170,7 +170,7 @@ func (op *DTAnalogModuleOpenPin) analogGetValue() (int, error) {
 		//Open the PIN for read
 		op.analogOpen()
 	}
-
+	op.valueFile.Seek(0, 0)
 	_, e := fmt.Fscanf(op.valueFile, "%d\n", &value)
 
 	return value, e
