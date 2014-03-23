@@ -131,6 +131,14 @@ func GetDefinedPins() HardwarePinMap {
 	return definedPins
 }
 
+// Ensure that any resources external to the program that have been allocated are tidied up.
+func CloseAll() {
+	if driver == nil {
+		return
+	}
+	driver.Close()
+}
+
 // Returns a Pin given a canonical name for the pin.
 // e.g. to get the pin number of P8.13 on a beaglebone,
 //     pin := hwio.GetPin("P8.13")
