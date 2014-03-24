@@ -52,6 +52,12 @@ Analog values (on BeagleBone Black at least) are integers typically between 0-18
 (Note that you cannot drive analog inputs more than 1.8 volts on the BeagleBone, and you should use the analog voltage
 references it provides)
 
+At the end of your application, call CloseAll(). This can be done at the end of the main() function with a defer:
+
+	defer hwio.CloseAll()
+
+This will ensure that resources allocated (particularly GPIO pins) will be released, even if there is a panic.
+
 ## Utility Functions
 
 To delay a number of milliseconds:
