@@ -14,7 +14,7 @@ For more information about the library, including pin diagrams for supported boa
 see http://stuffwemade.net/hwio.
 
 
-## Basic Usage
+## Digital Reads and Writes (GPIO)
 
 Initialising a pin looks like this:
 
@@ -44,13 +44,28 @@ Reading a value from a digital pin looks like this, returning a HIGH or LOW:
 
 	value, err := hwio.DigitalRead(myPin)
 
+## Analog
+
+Analog pins are available on BeagleBone Black. Unlike Arduino, before using analog pins you need to enable the module.
+This is because external programs may have them open.
+
+	analog, e := hwio.GetAnalogModule()
+	if e != nil {
+		fmt.Printf("could not get analog module: %s\n", e)
+		return
+	}
+
+	analog.Enable()
+
 Reading an analog value looks like this:
 
-	value, err := hwio.Analogread(somePin)
+	value, err := hwio.AnalogRead(somePin)
 
 Analog values (on BeagleBone Black at least) are integers typically between 0-1800, which is the number of millivolts. 
 (Note that you cannot drive analog inputs more than 1.8 volts on the BeagleBone, and you should use the analog voltage
 references it provides)
+
+## Cleaning Up on Exit
 
 At the end of your application, call CloseAll(). This can be done at the end of the main() function with a defer:
 
