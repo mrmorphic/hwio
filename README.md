@@ -73,6 +73,10 @@ At the end of your application, call CloseAll(). This can be done at the end of 
 
 This will ensure that resources allocated (particularly GPIO pins) will be released, even if there is a panic.
 
+If you want to close an individual GPIO pin, you can use:
+
+	hwio.ClosePin(pin)
+
 ## Utility Functions
 
 To delay a number of milliseconds:

@@ -228,6 +228,10 @@ func (module *testGPIOModule) DigitalRead(pin Pin) (int, error) {
 
 }
 
+func (module *testGPIOModule) ClosePin(pin Pin) error {
+	return nil
+}
+
 func (module *testGPIOModule) MockGetPinMode(pin Pin) PinIOMode {
 	return module.pinModes[pin]
 }

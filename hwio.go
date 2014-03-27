@@ -212,6 +212,16 @@ func PinMode(pin Pin, mode PinIOMode) error {
 	return gpio.PinMode(pin, mode)
 }
 
+// Close a specific pin that has been assigned as GPIO by PinMode
+func ClosePin(pin Pin) error {
+	gpio, e := GetGPIOModule()
+	if e != nil {
+		return e
+	}
+
+	return gpio.ClosePin(pin)
+}
+
 // Assign a pin to a module. This is typically called by modules when they allocate pins. If the pin is already assigned,
 // an error is generated. ethod is public in case it is needed to hack around default driver settings.
 func AssignPin(pin Pin, module Module) error {

@@ -133,11 +133,19 @@ func (module *DTGPIOModule) DigitalRead(pin Pin) (value int, e error) {
 		return 0, errors.New("Pin is being read from but has not been opened. Have you called PinMode?")
 	}
 	// 	if a.pinIOMode != INPUT && a.pinIOMode != INPUT_PULLUP && a.pinIOMode != INPUT_PULLDOWN {
-	// 		e = errors.New(fmt.Sprintf("DigitalRead: pin %d mode is not set for input", pin))
+	// 		e = errors.New(fmt.Sprintf("DigitalRead: pin %d mode not set for input", pin))
 	// 		return
 	// 	}
 
 	return openPin.gpioGetValue()
+}
+
+func (module *DTGPIOModule) ClosePin(pin Pin) error {
+	openPin := module.openPins[pin]
+	if openPin == nil {
+		return errors.New("Pin is being closed but has not been opened. Have you called PinMode?")
+	}
+	return openPin.gpioUnexport()
 }
 
 // create an openPin object and put it in the map.

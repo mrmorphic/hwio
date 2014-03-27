@@ -25,6 +25,7 @@ type GPIOModule interface {
 	PinMode(pin Pin, mode PinIOMode) (e error)
 	DigitalWrite(pin Pin, value int) (e error)
 	DigitalRead(pin Pin) (result int, e error)
+	ClosePin(pin Pin) (e error)
 }
 
 type PWMModule interface {
