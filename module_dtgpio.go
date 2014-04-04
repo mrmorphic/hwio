@@ -145,7 +145,11 @@ func (module *DTGPIOModule) ClosePin(pin Pin) error {
 	if openPin == nil {
 		return errors.New("Pin is being closed but has not been opened. Have you called PinMode?")
 	}
-	return openPin.gpioUnexport()
+	e := openPin.gpioUnexport()
+	if e != nil {
+		return e
+	}
+	return UnassignPin(pin)
 }
 
 // create an openPin object and put it in the map.
