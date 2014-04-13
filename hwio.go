@@ -89,6 +89,9 @@ func determineDriver() {
 	} else if strings.Contains(s, "ubuntu-armhf") && strings.Contains(s, "-bone") {
 		// Ubuntu on ARM with -bone suffix as part of the kernel version.
 		SetDriver(new(BeagleBoneBlackDriver))
+	} else if strings.Contains(s, "armv7l") && strings.Contains(s, "ARCH") {
+		// Arch Linux on ARM with -ARCH suffix as part of the kernel version.
+		SetDriver(new(BeagleBoneBlackDriver))
 	} else {
 		// file, e := os.Open("/etc/rpi-issue") // test for existence (only)
 		// if e == nil {
