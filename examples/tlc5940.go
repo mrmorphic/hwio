@@ -5,7 +5,8 @@ package main
 
 import (
 	"fmt"
-	"hwio"
+
+	"github.com/mrmorphic/hwio"
 )
 
 func main() {
