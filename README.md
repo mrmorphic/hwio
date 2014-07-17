@@ -2,17 +2,19 @@
 
 ## Introduction
 
-hwio is a Go library for interfacing with hardware I/O, particularly on SoC-based boards such as BeagleBone Black and
-Raspberry Pi. It is loosely modelled on the Arduino programming style, but deviating where that doesn't make sense in
-Go. It makes use of a thin hardware abstraction via an interface so a program written against the library
-for say a BeagleBone could be easily compiled to run on a Raspberry Pi, maybe only changing pin references.
+hwio is a Go library for interfacing with hardware I/O, particularly on
+SoC-based boards such as BeagleBone Black and Raspberry Pi. It is loosely
+modelled on the Arduino programming style, but deviating where that doesn't
+make sense in Go. It makes use of a thin hardware abstraction via an
+interface so a program written against the library for say a BeagleBone could
+be easily compiled to run on a Raspberry Pi, maybe only changing pin
+references.
 
 To use hwio, you just need to import it into your Go project, initialise modules and pins as
 required, and then use functions that manipulate the pins.
 
 For more information about the library, including pin diagrams for supported boards and tutorials,
 see http://stuffwemade.net/hwio.
-
 
 ## Digital Reads and Writes (GPIO)
 
@@ -63,7 +65,9 @@ Reading an analog value looks like this:
 
 Analog values (on BeagleBone Black at least) are integers typically between 0-1800, which is the number of millivolts. 
 (Note that you cannot drive analog inputs more than 1.8 volts on the BeagleBone, and you should use the analog voltage
-references it provides)
+references it provides).
+
+(Note: the Raspberry Pi does not have analog inputs onboard, and is not covered by the analog functions of hwio. However it is possible to use i2c to read from a compatible device, such as the MCP4725 or ADS1015. Adafruit has breakout boards for these devices.)
 
 ## Cleaning Up on Exit
 
@@ -245,15 +249,16 @@ REALLY IMPORTANT THINGS TO KNOW ABOUT THIS ABOUT THIS LIBRARY:
 
 Currently there are 3 drivers:
 
-  *	BeagleBoneBlackDriver - for BeagleBone boards running linux kernel 3.7 or higher, including
-  	BeagleBone Black. This is untested on older BeagleBone boards with updated kernels.
-  * RaspberryPiDTDriver - for Raspberry Pi modules running linux kernel 3.7 or higher, which includes newer Raspian
-    kernels and some late Occidental kernels.
+  *	BeagleBoneBlackDriver - for BeagleBone boards running linux kernel 3.7 or
+    higher, including BeagleBone Black. This is untested on older BeagleBone
+    boards with updated kernels.
+  * RaspberryPiDTDriver - for Raspberry Pi modules running linux kernel 3.7 or
+    higher, which includes newer Raspian kernels and some late Occidental
+    kernels.
   * TestDriver - for unit tests.
 
 Old pre-kernel-3.7 drivers for BeagleBone and Raspberry Pi have been deprecated as I have no test beds for these. If you want
 to use these, you can check out the 'legacy' branch that contains the older drivers, but no new features will be added.
-
 
 ### BeagleBoneBlackDriver
 
@@ -270,6 +275,7 @@ Status:
   * PWM is known to work on erhpwm2A and B ports.
   * GPIO pull-ups is not yet supported.
   * i2c is enabled by default.
+  * Has not been tested on BeagleBone Black rev V
 
 ### RaspberryPiDTDriver
 
@@ -283,6 +289,9 @@ Current status:
  *	GPIO pins are gpio4, gpio17, gpio18, gpio21, gpio22, gpio23, gpio24 and gpio25.
  *	I2C is working on raspian. You need to enable it on the board first.
  	Follow [these instructions](http://www.abelectronics.co.uk/i2c-raspbian-wheezy/info.aspx "i2c and spi support on raspian")
+ *  It is unlikely to work on a Raspberry Pi B+, as many pins have moved,
+    even on the first 26 legacy pins. Power and I2C appear to be in the same
+    locations, but little else.
 
 GetPin references on this driver return the pin numbers that are on the headers. Pin 0 is unimplemented.
 
