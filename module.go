@@ -44,9 +44,6 @@ type AnalogModule interface {
 	Module
 
 	AnalogRead(pin Pin) (result int, e error)
-
-	// read
-	// reference voltage
 }
 
 // Interface for I2C implementations. Assumes that this device is the only bus master, so initiates all transactions. An I2C module
@@ -95,5 +92,6 @@ type LEDModule interface {
 // LED from the an LEDModule
 type LEDModuleLED interface {
 	SetTrigger(trigger string) error
+
 	SetOn(on bool) error
 }
