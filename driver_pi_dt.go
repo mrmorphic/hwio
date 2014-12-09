@@ -41,13 +41,14 @@ func (d *RaspberryPiDTDriver) makePin(names []string, modules []string, gpioLogi
 	return &RPiPin{names, modules, gpioLogical}
 }
 
+// http://www.hobbytronics.co.uk/raspberry-pi-gpio-pinout
 func (d *RaspberryPiDTDriver) createPinData() {
-	d.pins = []*RPiPin{
+	pinsR1 := []*RPiPin{
 		d.makePin([]string{"null"}, []string{"unassignable"}, 0), // 0 - spacer
 		d.makePin([]string{"3.3v"}, []string{"unassignable"}, 0),
 		d.makePin([]string{"5v"}, []string{"unassignable"}, 0),
 		d.makePin([]string{"sda"}, []string{"i2c"}, 0),
-		d.makePin([]string{"do-not-connect1"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"do-not-connect-1"}, []string{"unassignable"}, 0),
 		d.makePin([]string{"scl"}, []string{"i2c"}, 0),
 		d.makePin([]string{"ground"}, []string{"unassignable"}, 0),
 		d.makePin([]string{"gpio4"}, []string{"gpio"}, 4),
@@ -70,6 +71,89 @@ func (d *RaspberryPiDTDriver) createPinData() {
 		d.makePin([]string{"ce0n"}, []string{"spi"}, 0),
 		d.makePin([]string{"do-not-connect-6"}, []string{"unassignable"}, 0),
 		d.makePin([]string{"ce1n"}, []string{"spi"}, 0),
+	}
+
+	pinsR2 := []*RPiPin{
+		d.makePin([]string{"null"}, []string{"unassignable"}, 0), // 0 - spacer
+		d.makePin([]string{"3.3v-1"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"5v-1"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"sda"}, []string{"i2c"}, 0),
+		d.makePin([]string{"5v-2"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"scl"}, []string{"i2c"}, 0),
+		d.makePin([]string{"ground-1"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio4"}, []string{"gpio"}, 4),
+		d.makePin([]string{"txd"}, []string{"serial"}, 0),
+		d.makePin([]string{"ground-2"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"rxd"}, []string{"serial"}, 0),
+		d.makePin([]string{"gpio17"}, []string{"gpio"}, 17),
+		d.makePin([]string{"gpio18"}, []string{"gpio"}, 18), // also supports PWM
+		d.makePin([]string{"gpio27"}, []string{"gpio"}, 21),
+		d.makePin([]string{"ground-3"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio22"}, []string{"gpio"}, 22),
+		d.makePin([]string{"gpio23"}, []string{"gpio"}, 23),
+		d.makePin([]string{"3.3v-2"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio24"}, []string{"gpio"}, 24),
+		d.makePin([]string{"mosi"}, []string{"spi"}, 0),
+		d.makePin([]string{"ground-4"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"miso"}, []string{"spi"}, 0),
+		d.makePin([]string{"gpio25"}, []string{"gpio"}, 25),
+		d.makePin([]string{"sclk"}, []string{"spi"}, 0),
+		d.makePin([]string{"gpio8"}, []string{"gpio"}, 8),
+		d.makePin([]string{"ground-5"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio7"}, []string{"gpio"}, 7),
+	}
+
+	pinsR3 := []*RPiPin{
+		d.makePin([]string{"null"}, []string{"unassignable"}, 0), // 0 - spacer
+		d.makePin([]string{"3.3v-1"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"5v-1"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"sda"}, []string{"i2c"}, 0),
+		d.makePin([]string{"5v-2"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"scl"}, []string{"i2c"}, 0),
+		d.makePin([]string{"ground-1"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio4"}, []string{"gpio"}, 4),
+		d.makePin([]string{"txd"}, []string{"serial"}, 0),
+		d.makePin([]string{"ground-2"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"rxd"}, []string{"serial"}, 0),
+		d.makePin([]string{"gpio17"}, []string{"gpio"}, 17),
+		d.makePin([]string{"gpio18"}, []string{"gpio"}, 18), // also supports PWM
+		d.makePin([]string{"gpio27"}, []string{"gpio"}, 21),
+		d.makePin([]string{"ground-3"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio22"}, []string{"gpio"}, 22),
+		d.makePin([]string{"gpio23"}, []string{"gpio"}, 23),
+		d.makePin([]string{"3.3v-2"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio24"}, []string{"gpio"}, 24),
+		d.makePin([]string{"mosi"}, []string{"spi"}, 0),
+		d.makePin([]string{"ground-4"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"miso"}, []string{"spi"}, 0),
+		d.makePin([]string{"gpio25"}, []string{"gpio"}, 25),
+		d.makePin([]string{"sclk"}, []string{"spi"}, 0),
+		d.makePin([]string{"gpio8"}, []string{"gpio"}, 8),
+		d.makePin([]string{"ground-5"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio7"}, []string{"gpio"}, 7),
+		d.makePin([]string{"do-not-connect-1"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"do-not-connect-2"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio5"}, []string{"gpio"}, 5),
+		d.makePin([]string{"ground-6"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio6"}, []string{"gpio"}, 6),
+		d.makePin([]string{"gpio12"}, []string{"gpio"}, 12),
+		d.makePin([]string{"gpio13"}, []string{"gpio"}, 13),
+		d.makePin([]string{"ground-7"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio19"}, []string{"gpio"}, 19),
+		d.makePin([]string{"gpio16"}, []string{"gpio"}, 16),
+		d.makePin([]string{"gpio26"}, []string{"gpio"}, 26),
+		d.makePin([]string{"gpio20"}, []string{"gpio"}, 20),
+		d.makePin([]string{"ground-8"}, []string{"unassignable"}, 0),
+		d.makePin([]string{"gpio21"}, []string{"gpio"}, 21),
+	}
+
+	switch d.BoardRevision() {
+	case 1:
+		d.pins = pinsR1
+	case 2:
+		d.pins = pinsR2
+	default: // B+
+		d.pins = pinsR3
 	}
 }
 
@@ -154,9 +238,13 @@ func (d *RaspberryPiDTDriver) getLEDOptions(name string) map[string]interface{} 
 // It will return 1 or 2.
 func (d *RaspberryPiDTDriver) BoardRevision() int {
 	revision := CpuInfo(0, "Revision")
-	if revision == "0002" || revision == "0003" {
+	switch revision {
+	case "0002", "0003":
 		return 1
+	case "0010":
+		return 3
 	}
+
 	return 2
 }
 
