@@ -54,6 +54,24 @@ type BeagleBoneBlackDriver struct {
 	modules map[string]Module
 }
 
+func NewBeagleboneBlackDTDriver() *BeagleBoneBlackDriver {
+	return &BeagleBoneBlackDriver{}
+}
+
+// Examine the hardware environment and determine if this driver will handle it.
+// Note: this replaces the old detection which mostly used "uname -a" for BeagleBone
+// detection, but this was unreliable with too many edge cases. Now, it looks for
+// specific driver config. This becomes less based on disto etc and more based on
+// capability surfaced via device drivers.
+func (d *BeagleBoneBlackDriver) MatchesHardwareConfig() bool {
+	// If bone_capemgr is not present, this driver won't work in any case
+	path, e := findFirstMatchingFile("/sys/devices/bone_capemgr.*/slots")
+	if e == nil && path != "" {
+		return true
+	}
+	return false
+}
+
 func (d *BeagleBoneBlackDriver) Init() error {
 	d.createPinData()
 	return d.initialiseModules()

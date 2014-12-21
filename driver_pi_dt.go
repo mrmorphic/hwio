@@ -30,6 +30,24 @@ type RaspberryPiDTDriver struct { // all pins understood by the driver
 	modules map[string]Module
 }
 
+func NewRaspPiDTDriver() *RaspberryPiDTDriver {
+	return &RaspberryPiDTDriver{}
+}
+
+// @todo determine a better way to detect the raspberry pi that is not dependent on uname
+func (d *RaspberryPiDTDriver) MatchesHardwareConfig() bool {
+	uname, e := exec.Command("uname", "-a").Output()
+	if e != nil {
+		return false
+	}
+
+	s := string(uname)
+	if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") {
+		return true
+	}
+	return false
+}
+
 func (d *RaspberryPiDTDriver) Init() error {
 	d.createPinData()
 	d.initialiseModules()

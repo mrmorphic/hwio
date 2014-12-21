@@ -67,40 +67,16 @@ func fileExists(name string) bool {
 
 // Work out the driver from environment if we can. If we have any problems,
 // don't generate an error, just return with the driver not set.
-// @todo use reflection to determine all implementors of the driver interface, and
-// @todo   call a method on the interface to self-detect. init and
-// @todo   constructor of drivers should do no setup in this case, esp of hardware
 func determineDriver() {
-	uname, e := exec.Command("uname", "-a").Output()
-	if e != nil {
-		return
+	drivers := [...]HardwareDriver{NewBeagleboneBlackDTDriver(), NewRaspPiDTDriver()}
+	for _, d := range drivers {
+		if d.MatchesHardwareConfig() {
+			SetDriver(driver)
+			return
+		}
 	}
 
-	s := string(uname)
-	if strings.Contains(s, "beaglebone") {
-		if fileExists("/sys/kernel/debug/omap_mux") {
-			panic("BeagleBone devices with kernels prior to 3.7 are no longer supported. The old driver is available in the 'legacy' branch.")
-		} else {
-			SetDriver(new(BeagleBoneBlackDriver))
-		}
-	} else if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") {
-		// @todo test for pre-3.7 kernels
-		SetDriver(new(RaspberryPiDTDriver))
-	} else if strings.Contains(s, "ubuntu-armhf") && strings.Contains(s, "-bone") {
-		// Ubuntu on ARM with -bone suffix as part of the kernel version.
-		SetDriver(new(BeagleBoneBlackDriver))
-	} else if strings.Contains(s, "armv7l") && strings.Contains(s, "ARCH") {
-		// Arch Linux on ARM with -ARCH suffix as part of the kernel version.
-		SetDriver(new(BeagleBoneBlackDriver))
-	} else {
-		// file, e := os.Open("/etc/rpi-issue") // test for existence (only)
-		// if e == nil {
-		// 	file.Close()
-		// 	SetDriver(new(RaspberryPiDriver))
-		// } else {
-		fmt.Printf("Unable to select a suitable driver for this board.\n%s\n", s)
-		// }
-	}
+	fmt.Printf("Unable to select a suitable driver for this board.\n")
 }
 
 // Check if the driver is assigned. If not, return an error to indicate that,
@@ -512,9 +488,17 @@ func GetModule(name string) (Module, error) {
 	return modules[name], nil
 }
 
-// This is the interface that hardware drivers implement.
+// This is the interface that hardware drivers implement. Generally all drivers are created
+// but not initialised. If MatchesHardwareConfig() is true and the driver is selected, Init()
+// will be called.
 type HardwareDriver interface {
-	// Initialise the driver after creation
+	// Each driver is responsible for evaluating whether it applies to the current hardware
+	// configuration or not. If this function returns false, the driver will not be used and Init
+	// will not be called. If this function returns true, the driver may be called, in which case
+	// Init will then be called
+	MatchesHardwareConfig() bool
+
+	// Initialise the driver.
 	Init() (e error)
 
 	// Return a module by name, or nil if undefined. The module names can be different between types of boards.
