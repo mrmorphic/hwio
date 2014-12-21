@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -71,7 +70,7 @@ func determineDriver() {
 	drivers := [...]HardwareDriver{NewBeagleboneBlackDTDriver(), NewRaspPiDTDriver()}
 	for _, d := range drivers {
 		if d.MatchesHardwareConfig() {
-			SetDriver(driver)
+			SetDriver(d)
 			return
 		}
 	}

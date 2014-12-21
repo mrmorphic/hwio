@@ -15,6 +15,11 @@ package hwio
 // - https://projects.drogon.net/raspberry-pi/wiringpi/
 // - BCM2835 technical reference
 
+import (
+	"os/exec"
+	"strings"
+)
+
 // Represents info we need to know about a pin on the Pi.
 type RPiPin struct {
 	names   []string // This intended for the P8.16 format name (currently unused)
