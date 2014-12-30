@@ -172,14 +172,17 @@ func (module *DTGPIOModule) makeOpenGPIOPin(pin Pin) (*DTGPIOModuleOpenPin, erro
 
 // Needs to be called to allocate the GPIO pin
 func (op *DTGPIOModuleOpenPin) gpioExport() error {
-	s := strconv.FormatInt(int64(op.gpioLogical), 10)
-	e := WriteStringToFile("/sys/class/gpio/export", s)
-	if e != nil {
-		return e
+	bn := "/sys/class/gpio/gpio" + strconv.Itoa(op.gpioLogical)
+	if !fileExists(bn) {
+		s := strconv.FormatInt(int64(op.gpioLogical), 10)
+		e := WriteStringToFile("/sys/class/gpio/export", s)
+		if e != nil {
+			return e
+		}
 	}
 
 	// calculate the base name for the gpio pin
-	op.gpioBaseName = "/sys/class/gpio/gpio" + strconv.Itoa(op.gpioLogical)
+	op.gpioBaseName = bn
 	return nil
 }
 
