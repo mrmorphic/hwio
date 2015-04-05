@@ -1,9 +1,6 @@
 package hwio
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
 // A driver for BeagleBone's running Linux kernel 3.8 or higher, which use device trees instead
 // of the old driver.
