@@ -166,7 +166,7 @@ func (d *BeagleBoneBlackDriver) initialiseModules() error {
 		return e
 	}
 
-	preallocated := newbbbPreassignedModule("preallocated")
+	preallocated := NewPreassignedModule("preallocated")
 	e = preallocated.SetOptions(d.getPreallocatedOptions())
 	if e != nil {
 		return e
@@ -359,42 +359,4 @@ func (d *BeagleBoneBlackDriver) PinMap() (pinMap HardwarePinMap) {
 	}
 
 	return
-}
-
-// This is a dummy module on the BeagleBone Black. It is passed a list of pre-assigned pins for which
-// there is no other module. It covers pins that are defined for HDMI, MMC and mcasp0. On the default
-// configuration, these pins are pre-assigned with device tree configuration, so they cannot be assigned
-// for gpio (without custom device tree)
-type bbbPreassignedModule struct {
-	name string
-	pins PinList
-}
-
-func newbbbPreassignedModule(name string) (result *bbbPreassignedModule) {
-	result = &bbbPreassignedModule{name: name}
-	return result
-}
-
-func (module *bbbPreassignedModule) SetOptions(options map[string]interface{}) error {
-	// get the pins
-	vp := options["pins"]
-	if vp == nil {
-		return fmt.Errorf("Module '%s' SetOptions() did not get 'pins' values", module.GetName())
-	}
-
-	module.pins = vp.(PinList)
-
-	return nil
-}
-
-func (module *bbbPreassignedModule) Enable() error {
-	return AssignPins(module.pins, module)
-}
-
-func (module *bbbPreassignedModule) Disable() error {
-	return UnassignPins(module.pins)
-}
-
-func (module *bbbPreassignedModule) GetName() string {
-	return module.name
 }
