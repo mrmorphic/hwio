@@ -142,14 +142,6 @@ func (d *BeagleBoneBlackDriver) createPinData() {
 		d.makePin([]string{"P9.40", "ain1"}, []string{"analog"}, 0, 1),
 		d.makePin([]string{"P9.41", "xdma_event_intr1", "gpio0_20"}, []string{"gpio"}, 20, 0),
 		d.makePin([]string{"P9.42", "ecap0_in_pwm0_out", "gpio0_7"}, []string{"gpio"}, 7, 0),
-
-		// @todo work out what to do with the USR LEDs. These are actually connected to GPIO, but don't work it you treat
-		// @todo as GPIO as it used to. Probably wants it's own BBB-specific module.
-		// // USR LEDs
-		// d.makePin("USR0", bbUsrLedProfile, "USR0", 1, 21, "gpmc_a5", 0),
-		// d.makePin("USR1", bbUsrLedProfile, "USR1", 1, 22, "gpmc_a6", 0),
-		// d.makePin("USR2", bbUsrLedProfile, "USR2", 1, 23, "gpmc_a7", 0),
-		// d.makePin("USR3", bbUsrLedProfile, "USR3", 1, 24, "gpmc_a8", 0),
 	}
 }
 
