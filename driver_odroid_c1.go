@@ -19,6 +19,23 @@ type OdroidC1Driver struct {
 	modules map[string]Module
 }
 
+func NewOdroidC1Driver() *OdroidC1Driver {
+	return &OdroidC1Driver{}
+}
+
+// Examine the hardware environment and determine if this driver will handle it.
+// For Odroid C1, it's easy: /proc/cpuinfo identifies it.
+func (d *OdroidC1Driver) MatchesHardwareConfig() bool {
+	// we need to get CPU 3, because /proc/cpuinfo on odroid has a set of properties
+	// that are system wide, that are listed after CPU specific properties.
+	// CpuInfo associated these with CPU 3, the last one it saw. Not ideal, but works.
+	hw := CpuInfo(3, "Hardware")
+	if hw == "ODROIDC" {
+		return true
+	}
+	return false
+}
+
 func (d *OdroidC1Driver) Init() error {
 	d.createPinData()
 	return d.initialiseModules()

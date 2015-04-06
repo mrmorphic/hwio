@@ -67,7 +67,7 @@ func fileExists(name string) bool {
 // Work out the driver from environment if we can. If we have any problems,
 // don't generate an error, just return with the driver not set.
 func determineDriver() {
-	drivers := [...]HardwareDriver{NewBeagleboneBlackDTDriver(), NewRaspPiDTDriver()}
+	drivers := [...]HardwareDriver{NewBeagleboneBlackDTDriver(), NewRaspPiDTDriver(), NewOdroidC1Driver()}
 	for _, d := range drivers {
 		if d.MatchesHardwareConfig() {
 			SetDriver(d)
