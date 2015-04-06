@@ -151,7 +151,7 @@ func (d *BeagleBoneBlackDriver) initialiseModules() error {
 		return e
 	}
 
-	analog := NewDTAnalogModule("analog")
+	analog := NewBBAnalogModule("analog")
 	e = analog.SetOptions(d.getAnalogOptions())
 	if e != nil {
 		return e
@@ -236,12 +236,12 @@ func (d *BeagleBoneBlackDriver) getGPIOOptions() map[string]interface{} {
 func (d *BeagleBoneBlackDriver) getAnalogOptions() map[string]interface{} {
 	result := make(map[string]interface{})
 
-	pins := make(DTAnalogModulePinDefMap)
+	pins := make(BBAnalogModulePinDefMap)
 
 	// Add the GPIO pins to this map
 	for i, hw := range d.beaglePins {
 		if d.usedBy(hw, "analog") {
-			pins[Pin(i)] = &DTAnalogModulePinDef{pin: Pin(i), analogLogical: hw.analogLogical}
+			pins[Pin(i)] = &BBAnalogModulePinDef{pin: Pin(i), analogLogical: hw.analogLogical}
 		}
 	}
 	result["pins"] = pins
