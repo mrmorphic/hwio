@@ -304,8 +304,9 @@ This driver accesses hardware via the device interfaces exposed in the file syst
 Status:
 
   * In active development.
+  * Analog input is known to work. Device limit is 1.8V on analog input.
 
-I2C is not loaded by default on this device. You need to either
+I2C is not loaded by default on this device. You need to either:
 
      modprobe aml_i2c
 
