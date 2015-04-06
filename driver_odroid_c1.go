@@ -83,7 +83,7 @@ func (d *OdroidC1Driver) initialiseModules() error {
 		return e
 	}
 
-	analog := NewDTAnalogModule("analog")
+	analog := NewODroidC1AnalogModule("analog")
 	e = analog.SetOptions(d.getAnalogOptions())
 	if e != nil {
 		return e
@@ -112,6 +112,7 @@ func (d *OdroidC1Driver) initialiseModules() error {
 	// initialise by default, which will assign P9.19 and P9.20. This is configured by default in device tree and these pins cannot be assigned.
 	i2ca.Enable()
 	i2cb.Enable()
+	analog.Enable()
 
 	return nil
 }
@@ -137,12 +138,12 @@ func (d *OdroidC1Driver) getGPIOOptions() map[string]interface{} {
 func (d *OdroidC1Driver) getAnalogOptions() map[string]interface{} {
 	result := make(map[string]interface{})
 
-	pins := make(DTAnalogModulePinDefMap)
+	pins := make(ODroidC1AnalogModulePinDefMap)
 
 	// Add the GPIO pins to this map
 	for i, pinConf := range d.pinConfigs {
 		if pinConf.usedBy("analog") {
-			pins[Pin(i)] = &DTAnalogModulePinDef{pin: Pin(i), analogLogical: pinConf.analogLogical}
+			pins[Pin(i)] = &ODroidC1AnalogModulePinDef{pin: Pin(i), analogLogical: pinConf.analogLogical}
 		}
 	}
 	result["pins"] = pins
