@@ -1,9 +1,6 @@
 package hwio
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
 // A driver for BeagleBone's running Linux kernel 3.8 or higher, which use device trees instead
 // of the old driver.
@@ -160,14 +157,6 @@ func (d *BeagleBoneBlackDriver) createPinData() {
 		d.makePin([]string{"P9.40", "ain1"}, []string{"analog"}, 0, 1),
 		d.makePin([]string{"P9.41", "xdma_event_intr1", "gpio0_20"}, []string{"gpio"}, 20, 0),
 		d.makePin([]string{"P9.42", "ecap0_in_pwm0_out", "gpio0_7"}, []string{"gpio"}, 7, 0),
-
-		// @todo work out what to do with the USR LEDs. These are actually connected to GPIO, but don't work it you treat
-		// @todo as GPIO as it used to. Probably wants it's own BBB-specific module.
-		// // USR LEDs
-		// d.makePin("USR0", bbUsrLedProfile, "USR0", 1, 21, "gpmc_a5", 0),
-		// d.makePin("USR1", bbUsrLedProfile, "USR1", 1, 22, "gpmc_a6", 0),
-		// d.makePin("USR2", bbUsrLedProfile, "USR2", 1, 23, "gpmc_a7", 0),
-		// d.makePin("USR3", bbUsrLedProfile, "USR3", 1, 24, "gpmc_a8", 0),
 	}
 }
 
@@ -180,7 +169,7 @@ func (d *BeagleBoneBlackDriver) initialiseModules() error {
 		return e
 	}
 
-	analog := NewDTAnalogModule("analog")
+	analog := NewBBAnalogModule("analog")
 	e = analog.SetOptions(d.getAnalogOptions())
 	if e != nil {
 		return e
@@ -192,7 +181,7 @@ func (d *BeagleBoneBlackDriver) initialiseModules() error {
 		return e
 	}
 
-	preallocated := newbbbPreassignedModule("preallocated")
+	preallocated := NewPreassignedModule("preallocated")
 	e = preallocated.SetOptions(d.getPreallocatedOptions())
 	if e != nil {
 		return e
@@ -265,12 +254,12 @@ func (d *BeagleBoneBlackDriver) getGPIOOptions() map[string]interface{} {
 func (d *BeagleBoneBlackDriver) getAnalogOptions() map[string]interface{} {
 	result := make(map[string]interface{})
 
-	pins := make(DTAnalogModulePinDefMap)
+	pins := make(BBAnalogModulePinDefMap)
 
 	// Add the GPIO pins to this map
 	for i, hw := range d.beaglePins {
 		if d.usedBy(hw, "analog") {
-			pins[Pin(i)] = &DTAnalogModulePinDef{pin: Pin(i), analogLogical: hw.analogLogical}
+			pins[Pin(i)] = &BBAnalogModulePinDef{pin: Pin(i), analogLogical: hw.analogLogical}
 		}
 	}
 	result["pins"] = pins
@@ -385,42 +374,4 @@ func (d *BeagleBoneBlackDriver) PinMap() (pinMap HardwarePinMap) {
 	}
 
 	return
-}
-
-// This is a dummy module on the BeagleBone Black. It is passed a list of pre-assigned pins for which
-// there is no other module. It covers pins that are defined for HDMI, MMC and mcasp0. On the default
-// configuration, these pins are pre-assigned with device tree configuration, so they cannot be assigned
-// for gpio (without custom device tree)
-type bbbPreassignedModule struct {
-	name string
-	pins PinList
-}
-
-func newbbbPreassignedModule(name string) (result *bbbPreassignedModule) {
-	result = &bbbPreassignedModule{name: name}
-	return result
-}
-
-func (module *bbbPreassignedModule) SetOptions(options map[string]interface{}) error {
-	// get the pins
-	vp := options["pins"]
-	if vp == nil {
-		return fmt.Errorf("Module '%s' SetOptions() did not get 'pins' values", module.GetName())
-	}
-
-	module.pins = vp.(PinList)
-
-	return nil
-}
-
-func (module *bbbPreassignedModule) Enable() error {
-	return AssignPins(module.pins, module)
-}
-
-func (module *bbbPreassignedModule) Disable() error {
-	return UnassignPins(module.pins)
-}
-
-func (module *bbbPreassignedModule) GetName() string {
-	return module.name
 }
