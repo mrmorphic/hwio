@@ -3,9 +3,8 @@
 ## Introduction
 
 hwio is a Go library for interfacing with hardware I/O, particularly on
-SoC-based boards such as BeagleBone Black and Raspberry Pi. It is loosely
-modelled on the Arduino programming style, but deviating where that doesn't
-make sense in Go. It makes use of a thin hardware abstraction via an
+SoC-based boards such as BeagleBone Black, Raspberry Pi and Odroid-C1. It is
+loosely modelled on the Arduino programming style, but deviating where that doesn't make sense in Go. It makes use of a thin hardware abstraction via an
 interface so a program written against the library for say a BeagleBone could
 be easily compiled to run on a Raspberry Pi, maybe only changing pin
 references.
@@ -262,9 +261,9 @@ to use these, you can check out the 'legacy' branch that contains the older driv
 
 ### BeagleBoneBlackDriver
 
-This driver accesses hardware via the device interfaces exposed in the file system on linux kernels 3.8 or higher, where
-device tree is mandated. This should be a robust driver as the hardware access is maintained by device driver authors,
-but is likely to be not as fast as direct memory I/O to the hardware as there is file system overhead.
+This driver accesses hardware via the device interfaces exposed in the file
+system on linux kernels 3.8 or higher, where device tree is mandated. This should be a robust driver as the hardware access is maintained by device
+driver authors, but is likely to be not as fast as direct memory I/O to the hardware as there is file system overhead.
 
 Status:
 
@@ -275,7 +274,7 @@ Status:
   * PWM is known to work on erhpwm2A and B ports.
   * GPIO pull-ups is not yet supported.
   * i2c is enabled by default.
-  * Has not been tested on BeagleBone Black rev V
+  * Has not been tested on BeagleBone Black rev C
 
 ### RaspberryPiDTDriver
 
@@ -297,6 +296,24 @@ GetPin references on this driver return the pin numbers that are on the headers.
 
 Note: before using this, check your kernel is 3.7 or higher. There are a number of pre-3.7 distributions still in use, and this driver
 does not support pre-3.7.
+
+### OdroidC1Driver
+
+This driver accesses hardware via the device interfaces exposed in the file system on linux kernels 3.8 or higher, where device tree is mandated. This should be a robust driver as the hardware access is maintained by device driver authors, but is likely to be not as fast as direct memory I/O to the hardware as there is file system overhead.
+
+Status:
+
+  * In active development.
+
+I2C is not loaded by default on this device. You need to either
+
+     modprobe aml_i2c
+
+or to enable on each boot:
+
+    sudo echo "aml_i2c" >> /etc/modules
+
+This makes the necessary /dev/i2c* files appear.
 
 ## Implementation Notes
 
