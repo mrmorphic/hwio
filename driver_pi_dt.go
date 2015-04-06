@@ -8,7 +8,7 @@ package hwio
 //
 // Known issues:
 // - INPUT_PULLUP and INPUT_PULLDOWN not implemented yet.
-// - no support yet for SPI, I2C, serial
+// - no support yet for SPI, serial
 //
 // References:
 // - http://elinux.org/RPi_Low-level_peripherals
