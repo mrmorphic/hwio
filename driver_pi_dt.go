@@ -39,7 +39,7 @@ func (d *RaspberryPiDTDriver) MatchesHardwareConfig() bool {
 	}
 
 	s := string(uname)
-	if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") {
+	if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") || strings.Contains(s, "alarmpi") {
 		return true
 	}
 	return false
