@@ -32,6 +32,10 @@ func (d *TestDriver) Close() {
 
 }
 
+func (d *TestDriver) MatchesHardwareConfig() bool {
+	return true
+}
+
 // func (d *TestDriver) SetVerbosity(verbose bool) {
 // 	d.verbose = verbose
 // }
