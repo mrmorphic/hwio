@@ -249,6 +249,13 @@ func (d *RaspberryPiDTDriver) BoardRevision() int {
 		return 3
 	}
 
+	// Pi 2 boards have different strings, but pinout is the same as B+
+	revision := CpuInfo(0, "CPU revision")
+	switch revision {
+	case "5":
+		return 3
+	}
+
 	return 2
 }
 
