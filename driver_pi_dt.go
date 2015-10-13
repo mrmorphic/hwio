@@ -31,17 +31,16 @@ func NewRaspPiDTDriver() *RaspberryPiDTDriver {
 	return &RaspberryPiDTDriver{}
 }
 
-// @todo determine a better way to detect the raspberry pi that is not dependent on uname
 func (d *RaspberryPiDTDriver) MatchesHardwareConfig() bool {
-	uname, e := exec.Command("uname", "-a").Output()
+	cpuinfo, e := exec.Command("cat", "/proc/cpuinfo").Output()
 	if e != nil {
 		return false
 	}
-
-	s := string(uname)
-	if strings.Contains(s, "raspberrypi") || strings.Contains(s, "adafruit") || strings.Contains(s, "alarmpi") {
+	s := string(cpuinfo)
+	if strings.Contains(s, "BCM2708") || strings.Contains(s, "BCM2709") {
 		return true
 	}
+
 	return false
 }
 
