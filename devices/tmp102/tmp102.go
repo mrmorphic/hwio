@@ -39,5 +39,6 @@ func (t *TMP102) GetTemp() (float32, error) {
 	/* Credit: http://bildr.org/2011/01/tmp102-arduino/ */
 	temp := ((int(MSB) << 8) | int(LSB)) >> 4
 
+	// divide by 16, since lowest 4 bits are fractional.
 	return float32(temp) * 0.0625, nil
 }
