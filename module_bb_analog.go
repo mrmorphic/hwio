@@ -1,8 +1,10 @@
 package hwio
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -67,10 +69,13 @@ func (module *BBAnalogModule) Enable() error {
 			return e
 		}
 
-		// enable analog
-		e = WriteStringToFile(path, "cape-bone-iio")
-		if e != nil {
-			return e
+		// determine if cape-bone-iio is already in the file. If so, we've already initialised it.
+		if !module.hasCapeBoneIIO(path) {
+			// enable analog
+			e = WriteStringToFile(path, "cape-bone-iio")
+			if e != nil {
+				return e
+			}
 		}
 
 		// determine path where analog files are
@@ -99,6 +104,17 @@ func (module *BBAnalogModule) Enable() error {
 	return nil
 }
 
+func (module *BBAnalogModule) hasCapeBoneIIO(path string) bool {
+	f, e := ioutil.ReadFile(path)
+	if e != nil {
+		return false
+	}
+	if bytes.Contains(f, []byte("cape-bone-iio")) {
+		return true
+	}
+	return false
+}
+
 // disables module and release any pins assigned.
 func (module *BBAnalogModule) Disable() error {
 	// Unassign any pins we may have assigned
@@ -122,10 +138,18 @@ func (module *BBAnalogModule) GetName() string {
 // 	return nil
 // }
 
-func (module *BBAnalogModule) AnalogRead(pin Pin) (value int, e error) {
+func (module *BBAnalogModule) AnalogRead(pin Pin) (int, error) {
+	var e error
+
+	// Get it if it's already open
 	openPin := module.openPins[pin]
 	if openPin == nil {
-		return 0, errors.New("Pin is being read for analog value but has not been opened. Have you called PinMode?")
+		// If it's not open yet, open on demand
+		openPin, e = module.makeOpenAnalogPin(pin)
+		// return 0, errors.New("Pin is being read for analog value but has not been opened. Have you called PinMode?")
+		if e != nil {
+			return 0, e
+		}
 	}
 	return openPin.analogGetValue()
 }
@@ -136,8 +160,13 @@ func (module *BBAnalogModule) makeOpenAnalogPin(pin Pin) (*BBAnalogModuleOpenPin
 		return nil, fmt.Errorf("Pin %d is not known to analog module", pin)
 	}
 
-	path := module.analogValueFilesPath + fmt.Sprintf("ain%d", p.analogLogical)
+	path := module.analogValueFilesPath + fmt.Sprintf("AIN%d", p.analogLogical)
 	result := &BBAnalogModuleOpenPin{pin: pin, analogLogical: p.analogLogical, analogFile: path}
+	e := result.analogOpen()
+	if e != nil {
+		return nil, e
+	}
+
 	module.openPins[pin] = result
 
 	return result, nil
