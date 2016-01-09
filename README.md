@@ -305,6 +305,9 @@ Status:
 
   * In active development.
   * Analog input is known to work. Device limit is 1.8V on analog input.
+  * Autodetection works
+  * GPIO not fully tested
+  * PWM does not work yet
 
 I2C is not loaded by default on this device. You need to either:
 
