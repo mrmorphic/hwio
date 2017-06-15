@@ -99,7 +99,7 @@ func (d *RaspberryPiDTDriver) createPinData() {
 			&DTPinConfig{[]string{"rxd"}, []string{"serial"}, 0, 0},
 			&DTPinConfig{[]string{"gpio17"}, []string{"gpio"}, 17, 0},
 			&DTPinConfig{[]string{"gpio18"}, []string{"gpio"}, 18, 0}, // also supports PWM
-			&DTPinConfig{[]string{"gpio27"}, []string{"gpio"}, 21, 0},
+			&DTPinConfig{[]string{"gpio27"}, []string{"gpio"}, 27, 0},
 			&DTPinConfig{[]string{"ground-3"}, []string{"unassignable"}, 0, 0},
 			&DTPinConfig{[]string{"gpio22"}, []string{"gpio"}, 22, 0},
 			&DTPinConfig{[]string{"gpio23"}, []string{"gpio"}, 23, 0},
