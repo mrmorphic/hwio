@@ -37,7 +37,7 @@ func (d *RaspberryPiDTDriver) MatchesHardwareConfig() bool {
 		return false
 	}
 	s := string(cpuinfo)
-	if strings.Contains(s, "BCM2708") || strings.Contains(s, "BCM2709") {
+	if strings.Contains(s, "BCM2708") || strings.Contains(s, "BCM2709") || strings.Contains(s, "BCM2835") {
 		return true
 	}
 
