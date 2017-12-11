@@ -18,6 +18,7 @@ package hwio
 import (
 	"os/exec"
 	"strings"
+	"fmt"
 )
 
 type raspberry_board_revision int
@@ -47,6 +48,7 @@ func (d *RaspberryPiDTDriver) MatchesHardwareConfig() bool {
 	}
 	s := string(cpuinfo)
 	if strings.Contains(s, "BCM2708") || strings.Contains(s, "BCM2709") || strings.Contains(s, "BCM2835") {
+		fmt.Println("Matching Raspi")
 		return true
 	}
 
@@ -62,8 +64,10 @@ func (d *RaspberryPiDTDriver) Init() error {
 
 // http://www.hobbytronics.co.uk/raspberry-pi-gpio-pinout
 func (d *RaspberryPiDTDriver) createPinData() {
+	fmt.Println("Creating Pin Data")
 	switch d.BoardRevision() {
 	case type0ne:
+		fmt.Println("Creating Type One")
 		d.pinConfigs = []*DTPinConfig{
 			&DTPinConfig{[]string{"null"}, []string{"unassignable"}, 0, 0}, // 0 - spacer
 			&DTPinConfig{[]string{"3.3v"}, []string{"unassignable"}, 0, 0},
@@ -94,6 +98,7 @@ func (d *RaspberryPiDTDriver) createPinData() {
 			&DTPinConfig{[]string{"ce1n"}, []string{"spi"}, 0, 0},
 		}
 	case typeTwo:
+		fmt.Println("Creating Type Two")
 		d.pinConfigs = []*DTPinConfig{
 			&DTPinConfig{[]string{"null"}, []string{"unassignable"}, 0, 0}, // 0 - spacer
 			&DTPinConfig{[]string{"3.3v-1"}, []string{"unassignable"}, 0, 0},
@@ -124,6 +129,7 @@ func (d *RaspberryPiDTDriver) createPinData() {
 			&DTPinConfig{[]string{"gpio7"}, []string{"gpio"}, 7, 0},
 		}
 	case typeAplusBPlusZeroPi2: // B+
+		fmt.Println("Creating Type PLUS")
 		d.pinConfigs = []*DTPinConfig{
 			&DTPinConfig{[]string{"null"}, []string{"unassignable"}, 0, 0}, // 0 - spacer
 			&DTPinConfig{[]string{"3.3v-1"}, []string{"unassignable"}, 0, 0},
