@@ -18,7 +18,17 @@ package hwio
 import (
 	"os/exec"
 	"strings"
+	"fmt"
 )
+
+type raspberry_board_revision int
+
+const (
+	type0ne = iota
+	typeTwo
+	typeAplusBPlusZeroPi2
+)
+
 
 type RaspberryPiDTDriver struct { // all pins understood by the driver
 	pinConfigs []*DTPinConfig
@@ -38,6 +48,7 @@ func (d *RaspberryPiDTDriver) MatchesHardwareConfig() bool {
 	}
 	s := string(cpuinfo)
 	if strings.Contains(s, "BCM2708") || strings.Contains(s, "BCM2709") || strings.Contains(s, "BCM2835") {
+		fmt.Println("Matching Raspi")
 		return true
 	}
 
@@ -53,8 +64,10 @@ func (d *RaspberryPiDTDriver) Init() error {
 
 // http://www.hobbytronics.co.uk/raspberry-pi-gpio-pinout
 func (d *RaspberryPiDTDriver) createPinData() {
+	fmt.Println("Creating Pin Data")
 	switch d.BoardRevision() {
-	case 1:
+	case type0ne:
+		fmt.Println("Creating Type One")
 		d.pinConfigs = []*DTPinConfig{
 			&DTPinConfig{[]string{"null"}, []string{"unassignable"}, 0, 0}, // 0 - spacer
 			&DTPinConfig{[]string{"3.3v"}, []string{"unassignable"}, 0, 0},
@@ -84,7 +97,8 @@ func (d *RaspberryPiDTDriver) createPinData() {
 			&DTPinConfig{[]string{"do-not-connect-6"}, []string{"unassignable"}, 0, 0},
 			&DTPinConfig{[]string{"ce1n"}, []string{"spi"}, 0, 0},
 		}
-	case 2:
+	case typeTwo:
+		fmt.Println("Creating Type Two")
 		d.pinConfigs = []*DTPinConfig{
 			&DTPinConfig{[]string{"null"}, []string{"unassignable"}, 0, 0}, // 0 - spacer
 			&DTPinConfig{[]string{"3.3v-1"}, []string{"unassignable"}, 0, 0},
@@ -114,7 +128,8 @@ func (d *RaspberryPiDTDriver) createPinData() {
 			&DTPinConfig{[]string{"ground-5"}, []string{"unassignable"}, 0, 0},
 			&DTPinConfig{[]string{"gpio7"}, []string{"gpio"}, 7, 0},
 		}
-	default: // B+
+	case typeAplusBPlusZeroPi2: // B+
+		fmt.Println("Creating Type PLUS")
 		d.pinConfigs = []*DTPinConfig{
 			&DTPinConfig{[]string{"null"}, []string{"unassignable"}, 0, 0}, // 0 - spacer
 			&DTPinConfig{[]string{"3.3v-1"}, []string{"unassignable"}, 0, 0},
@@ -244,19 +259,21 @@ func (d *RaspberryPiDTDriver) BoardRevision() int {
 	revision := CpuInfo(0, "Revision")
 	switch revision {
 	case "0002", "0003":
-		return 1
+		return type0ne
 	case "0010":
-		return 3
+		return typeAplusBPlusZeroPi2
 	}
 
 	// Pi 2 boards have different strings, but pinout is the same as B+
 	revision = CpuInfo(0, "CPU revision")
 	switch revision {
 	case "5":
-		return 3
+		return typeAplusBPlusZeroPi2
+	case "7": //PI zero +
+		return typeAplusBPlusZeroPi2
 	}
 
-	return 2
+	return typeTwo
 }
 
 func (d *RaspberryPiDTDriver) GetModules() map[string]Module {
