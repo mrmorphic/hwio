@@ -20,6 +20,15 @@ import (
 	"strings"
 )
 
+type raspberry_board_revision int
+
+const (
+	type0ne = iota
+	typeTwo
+	typeAplusBPlusZeroPi2
+)
+
+
 type RaspberryPiDTDriver struct { // all pins understood by the driver
 	pinConfigs []*DTPinConfig
 
@@ -54,7 +63,7 @@ func (d *RaspberryPiDTDriver) Init() error {
 // http://www.hobbytronics.co.uk/raspberry-pi-gpio-pinout
 func (d *RaspberryPiDTDriver) createPinData() {
 	switch d.BoardRevision() {
-	case 1:
+	case type0ne:
 		d.pinConfigs = []*DTPinConfig{
 			&DTPinConfig{[]string{"null"}, []string{"unassignable"}, 0, 0}, // 0 - spacer
 			&DTPinConfig{[]string{"3.3v"}, []string{"unassignable"}, 0, 0},
@@ -84,7 +93,7 @@ func (d *RaspberryPiDTDriver) createPinData() {
 			&DTPinConfig{[]string{"do-not-connect-6"}, []string{"unassignable"}, 0, 0},
 			&DTPinConfig{[]string{"ce1n"}, []string{"spi"}, 0, 0},
 		}
-	case 2:
+	case typeTwo:
 		d.pinConfigs = []*DTPinConfig{
 			&DTPinConfig{[]string{"null"}, []string{"unassignable"}, 0, 0}, // 0 - spacer
 			&DTPinConfig{[]string{"3.3v-1"}, []string{"unassignable"}, 0, 0},
@@ -114,7 +123,7 @@ func (d *RaspberryPiDTDriver) createPinData() {
 			&DTPinConfig{[]string{"ground-5"}, []string{"unassignable"}, 0, 0},
 			&DTPinConfig{[]string{"gpio7"}, []string{"gpio"}, 7, 0},
 		}
-	default: // B+
+	case typeAplusBPlusZeroPi2: // B+
 		d.pinConfigs = []*DTPinConfig{
 			&DTPinConfig{[]string{"null"}, []string{"unassignable"}, 0, 0}, // 0 - spacer
 			&DTPinConfig{[]string{"3.3v-1"}, []string{"unassignable"}, 0, 0},
@@ -244,19 +253,21 @@ func (d *RaspberryPiDTDriver) BoardRevision() int {
 	revision := CpuInfo(0, "Revision")
 	switch revision {
 	case "0002", "0003":
-		return 1
+		return type0ne
 	case "0010":
-		return 3
+		return typeAplusBPlusZeroPi2
 	}
 
 	// Pi 2 boards have different strings, but pinout is the same as B+
 	revision = CpuInfo(0, "CPU revision")
 	switch revision {
 	case "5":
-		return 3
+		return typeAplusBPlusZeroPi2
+	case "7": //PI zero +
+		return typeAplusBPlusZeroPi2
 	}
 
-	return 2
+	return typeTwo
 }
 
 func (d *RaspberryPiDTDriver) GetModules() map[string]Module {
