@@ -287,7 +287,7 @@ func (d *RaspberryPiDTDriver) PinMap() (pinMap HardwarePinMap) {
 	pinMap = make(HardwarePinMap)
 
 	for i, hw := range d.pinConfigs {
-		pinMap.add(Pin(i), hw.names, hw.modules)
+		pinMap.Add(Pin(i), hw.names, hw.modules)
 	}
 
 	return

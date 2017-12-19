@@ -40,7 +40,7 @@ type Pin int
 
 type PinDef struct {
 	pin     Pin      // the pin, also in the map key of HardwarePinMap
-	names   []string // a list of names for the pin as defined by driver. There should be at least one. The first is the canonical name.
+	names   []string // a list of names for the pin as defined by Driver. There should be at least one. The first is the canonical name.
 	modules []string // a list of module names that can use this pin
 }
 
@@ -49,7 +49,7 @@ type PinList []Pin
 type HardwarePinMap map[Pin]*PinDef
 
 // Add a pin to the map
-func (m HardwarePinMap) add(pin Pin, names []string, modules []string) {
+func (m HardwarePinMap) Add(pin Pin, names []string, modules []string) {
 	m[pin] = &PinDef{pin, names, modules}
 }
 

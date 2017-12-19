@@ -85,7 +85,7 @@ func (d *TestDriver) PinMap() HardwarePinMap {
 	result := make(HardwarePinMap)
 
 	for i, hw := range d.pinDefs {
-		result.add(Pin(i), hw.names, hw.modules)
+		result.Add(Pin(i), hw.names, hw.modules)
 	}
 
 	return result
