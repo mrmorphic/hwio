@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 type DTGPIOModule struct {
@@ -91,7 +92,7 @@ func (module *DTGPIOModule) PinMode(pin Pin, mode PinIOMode) error {
 	}
 
 	if mode == OUTPUT {
-		fmt.Printf("about to set pin %d to output\n", pin)
+		// fmt.Printf("about to set pin %d to output\n", pin)
 		e = openPin.gpioDirection("out")
 		if e != nil {
 			return e
@@ -202,8 +203,45 @@ func (op *DTGPIOModuleOpenPin) gpioDirection(dir string) error {
 	if dir != "in" && dir != "out" {
 		return errors.New("direction must be in or out")
 	}
+
 	f := op.gpioBaseName + "/direction"
-	e := WriteStringToFile(f, dir)
+
+	// check the current direction
+	file, err := os.OpenFile(f, os.O_RDONLY, 0666)
+	if err != nil {
+		return err
+	}
+	var n int
+	b := make([]byte, 4)
+	n, err = file.Read(b)
+	file.Close()
+	if n < 2 {
+		return errors.New("current direction len less than 2")
+	}
+
+	if string(b[:n]) != dir {
+		// direction do not match
+
+		var fileInfo os.FileInfo
+		for i := 0; i < 100; i++ {
+			fileInfo, err = os.Stat(f)
+			if err != nil {
+				return err
+			}
+			// check if have write permissions
+			if uint32(fileInfo.Mode())&18 > 0 {
+				break
+			}
+			// wait for export to finish and so have write permissions
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		// write the new direction
+		err = WriteStringToFile(f, dir)
+		if err != nil {
+			return err
+		}
+	}
 
 	mode := os.O_WRONLY | os.O_TRUNC
 	if dir == "in" {
@@ -214,9 +252,9 @@ func (op *DTGPIOModuleOpenPin) gpioDirection(dir string) error {
 	// continuously for performance.
 	// Preliminary tests on 200,000 DigitalWrites indicate an order of magnitude improvement when we don't have
 	// to re-open the file each time. Re-seeking and writing a new value suffices.
-	op.valueFile, e = os.OpenFile(op.gpioBaseName+"/value", mode, 0666)
+	op.valueFile, err = os.OpenFile(op.gpioBaseName+"/value", mode, 0666)
 
-	return e
+	return err
 }
 
 // Get the value. Will return HIGH or LOW
