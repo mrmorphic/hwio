@@ -259,19 +259,12 @@ func (op *DTGPIOModuleOpenPin) gpioDirection(dir string) error {
 
 // Get the value. Will return HIGH or LOW
 func (op *DTGPIOModuleOpenPin) gpioGetValue() (int, error) {
-	var b []byte
-	b = make([]byte, 1)
+	b := make([]byte, 1)
 	n, e := op.valueFile.ReadAt(b, 0)
-
-	value := 0
-	if n > 0 {
-		if b[0] == '1' {
-			value = HIGH
-		} else {
-			value = LOW
-		}
+	if n > 0 && b[0] == '1' {
+		return HIGH, e
 	}
-	return value, e
+	return LOW, e
 }
 
 // Set the value, Expects HIGH or LOW
