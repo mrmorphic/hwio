@@ -21,6 +21,7 @@ import (
 )
 
 type pinoutRevision int
+
 const (
 	//type0ne is used for a Raspberry 1
 	type0ne = iota
@@ -29,7 +30,6 @@ const (
 	//typeAplusBPlusZeroPi2 is used fo  Raspberry Pi 1 Models A+ and B+, Pi 2 Model B, Pi 3 Model B and Pi Zero (and Zero W)
 	typeAplusBPlusZeroPi2
 )
-
 
 type RaspberryPiDTDriver struct { // all pins understood by the driver
 	pinConfigs []*DTPinConfig
@@ -227,7 +227,7 @@ func (d *RaspberryPiDTDriver) getI2COptions() map[string]interface{} {
 
 	result["pins"] = pins
 
-	if d.BoardRevision() ==  type0ne {
+	if d.BoardRevision() == type0ne {
 		result["device"] = "/dev/i2c-0"
 	} else {
 		result["device"] = "/dev/i2c-1"
@@ -251,12 +251,21 @@ func (d *RaspberryPiDTDriver) getLEDOptions(name string) map[string]interface{} 
 // This discussion http://www.raspberrypi.org/phpBB3/viewtopic.php?f=44&t=23989
 // was used to determine the algorithm, specifically the comment by gordon@drogon.net
 // It will return 1 or 2.
+// https://elinux.org/RPi_HardwareHistory#Board_Revision_History
 func (d *RaspberryPiDTDriver) BoardRevision() pinoutRevision {
 	revision := CpuInfo(0, "Revision")
 	switch revision {
 	case "0002", "0003":
 		return type0ne
 	case "0010":
+		return typeAplusBPlusZeroPi2
+	}
+
+	revision = CpuInfo(3, "Revision")
+	switch revision {
+	case "a02082", "a22082": // PI 3 Model B
+		return typeAplusBPlusZeroPi2
+	case "a020d3": // PI 3 Model B+
 		return typeAplusBPlusZeroPi2
 	}
 
